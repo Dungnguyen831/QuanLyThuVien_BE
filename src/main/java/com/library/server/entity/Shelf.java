@@ -6,19 +6,19 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "shelves")
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Category extends BaseEntity {
+public class Shelf extends BaseEntity {
 
     @Column(name = "name")
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "floor")
+    private Integer floor;
 
-    @OneToMany(mappedBy = "category")
+    @OneToMany(mappedBy = "shelf")
     @JsonIgnore
-    private List<Book> books;
+    private List<BookCopy> bookCopies;
 }
