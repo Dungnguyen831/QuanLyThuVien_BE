@@ -1,13 +1,19 @@
 package com.library.server.entity;
-import jakarta.persistence.*;
-import lombok.*;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "categories")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
-public class Category extends BaseEntity {
+@Getter
+@Setter
+public class Category extends BaseEntity { // Kế thừa từ BaseEntity của bạn
+
     private String name;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
+
+    // Các trường id, createdAt, updatedAt đã được BaseEntity xử lý
 }
