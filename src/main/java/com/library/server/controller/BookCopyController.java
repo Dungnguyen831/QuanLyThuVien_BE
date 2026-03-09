@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/book-copies")
 @CrossOrigin("*")
-public class BookCopyApiController {
+public class BookCopyController {
 
     @Autowired
     private BookCopyService bookCopyService;
