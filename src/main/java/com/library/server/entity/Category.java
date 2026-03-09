@@ -4,21 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
-
 @Entity
 @Table(name = "categories")
 @Getter @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class Category extends BaseEntity {
-
-    @Column(name = "name")
     private String name;
-
-    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-    @OneToMany(mappedBy = "category")
-    @JsonIgnore
-    private List<Book> books;
 }

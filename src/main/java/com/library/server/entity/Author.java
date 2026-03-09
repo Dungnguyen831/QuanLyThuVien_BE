@@ -11,14 +11,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "authors")
-@Getter
-@Setter
+@Getter @Setter
 public class Author extends BaseEntity {
     private String name;
-    @Column(columnDefinition = "TEXT")
     private String biography;
-
-    @OneToMany(mappedBy = "author")
-    @com.fasterxml.jackson.annotation.JsonIgnore // Tránh lặp vô tận JSON
-    private List<Book> books;
 }

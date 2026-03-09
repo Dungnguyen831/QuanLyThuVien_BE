@@ -3,34 +3,40 @@ package com.library.server.entity;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "book_copies")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter @Setter
 public class BookCopy extends BaseEntity {
 
+    private String barcode;
+
+    @Column(name = "condition_status")
+    private String conditionStatus; // Ví dụ: NEW, GOOD, DAMAGED
+
+    @Column(name = "availability_status")
+    private String availabilityStatus; // Ví dụ: AVAILABLE, BORROWED
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "book_id")
     @JsonIgnore
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shelf_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "shelf_id")
     @JsonIgnore
     private Shelf shelf;
 
-    private String barcode;
-    private String conditionStatus;
-    private String availabilityStatus;
-
+    // Trả về ID để khớp với yêu cầu không dùng DTO
     @JsonGetter("book_id")
-    public Integer getBookIdId() {
-        return (book != null) ? book.getId() : null;
+    public Integer getBookIdJson() {
+        return book != null ? book.getId() : null;
     }
 
     @JsonGetter("shelf_id")
-    public Integer getShelfIdId() {
-        return (shelf != null) ? shelf.getId() : null;
+    public Integer getShelfIdJson() {
+        return shelf != null ? shelf.getId() : null;
     }
 }
