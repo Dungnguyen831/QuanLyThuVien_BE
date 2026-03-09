@@ -15,7 +15,6 @@ import java.util.List;
 @CrossOrigin(origins = "*") // Chống lỗi CORS
 @RequiredArgsConstructor
 public class LoanApiController {
-
     private final LoanService loanService;
 
     @GetMapping
