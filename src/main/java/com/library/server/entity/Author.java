@@ -13,6 +13,10 @@ import java.util.List;
 @Table(name = "authors")
 @Getter @Setter
 public class Author extends BaseEntity {
+
+    @Column(nullable = false)
     private String name;
+
+    @Column(columnDefinition = "TEXT")
     private String biography;
 }

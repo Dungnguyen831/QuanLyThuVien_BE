@@ -4,6 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "publishers")
@@ -12,7 +17,8 @@ import java.util.List;
 @AllArgsConstructor
 public class Publisher extends BaseEntity {
 
-    @Column(name = "name")
+
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "address")

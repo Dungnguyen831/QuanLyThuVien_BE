@@ -1,24 +1,21 @@
 package com.library.server.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import lombok.*;
-import java.util.List;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "shelves")
-@Getter @Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
 public class Shelf extends BaseEntity {
 
-    @Column(name = "name")
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "floor")
-    private Integer floor;
+    private Integer floor; // Số tầng (ví dụ: tầng 1, tầng 2)
 
-    @OneToMany(mappedBy = "shelf")
-    @JsonIgnore
-    private List<BookCopy> bookCopies;
+    // id, createdAt, updatedAt đã được kế thừa từ BaseEntity
 }
