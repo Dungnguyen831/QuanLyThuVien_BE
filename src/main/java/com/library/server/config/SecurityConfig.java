@@ -16,16 +16,36 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    //  SWAGGER  http://localhost:8080/swagger-ui/index.html
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Cú pháp mới cho CSRF
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. Thay authorizeRequests() bằng authorizeHttpRequests()
                 .authorizeHttpRequests(auth -> auth
-                        // 3. Thay antMatchers() bằng requestMatchers()
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login","/api/v1/users","/api/v1/users/{id}" ).permitAll()
+
+                        // Swagger endpoints
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
+                        // API public
+                        .requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/v1/users/**",
+                                "/api/v1/books/**",
+                                "/api/v1/book-copies/**",
+                                "/api/v1/authors/**",
+                                "/api/v1/shelves/**",
+                                "/api/v1/publishers/**",
+                                "/api/v1/loans/**",
+                                "/api/v1/categories"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 );
 
