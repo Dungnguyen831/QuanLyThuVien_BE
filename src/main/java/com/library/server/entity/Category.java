@@ -7,7 +7,6 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class Category extends BaseEntity {
     private String name;
-
     @Column(columnDefinition = "TEXT")
     private String description;
 }
