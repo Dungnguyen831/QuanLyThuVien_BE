@@ -4,8 +4,9 @@ import lombok.Data;
 
 @Data
 public class LoanRequestDTO {
-    private Integer userId;
-    private String barcode;
-    private Integer daysToBorrow;
+    private String userId;
+    private String bookId;
+    private String borrowDate;
+    private String dueDate;
     private String note;
 }

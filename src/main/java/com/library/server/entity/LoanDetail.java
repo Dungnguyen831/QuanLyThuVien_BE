@@ -17,11 +17,11 @@ public class LoanDetail extends BaseEntity {
 
     // Nối với phiếu mượn gốc
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "loan_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "loan_id")
     private Loan loan;
 
     // Nối với cuốn sách vật lý (mã vạch)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_copy_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "book_copy_id")
     private BookCopy bookCopy;
 }
