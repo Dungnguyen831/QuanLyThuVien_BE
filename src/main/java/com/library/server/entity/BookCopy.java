@@ -21,7 +21,6 @@ public class BookCopy extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id")
-    @JsonIgnore
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)

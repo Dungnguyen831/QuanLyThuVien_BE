@@ -9,4 +9,5 @@ import java.util.List;
 public interface BookCopyRepository extends JpaRepository<BookCopy, Integer> {
     // Tìm danh sách bản sao dựa trên book_id
     List<BookCopy> findByBookId(Integer bookId);
+
 }

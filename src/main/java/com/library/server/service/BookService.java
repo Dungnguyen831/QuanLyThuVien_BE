@@ -31,6 +31,10 @@ public class BookService {
     public List<Book> searchBooksByTitle(String title) {
         return bookRepository.findByTitleContainingIgnoreCase(title);
     }
+    // tìm kiếm sách theo barcode
+    public List<Book> searchBooksByBarcode(String isbn) {
+        return bookRepository.findByIsbnContainingIgnoreCase(isbn);
+    }
     // hiển thị danh sách bản sao của sách theo id sách
     public List<BookCopy> getCopiesByBookId(Integer bookId) {
         return bookCopyRepository.findByBookId(bookId);
@@ -42,7 +46,7 @@ public class BookService {
     }
     // Cập nhật sách
     public Book updateBook(Integer id, Book bookDetails) {
-        Book book = getBookById(id); // Tận dụng hàm tìm kiếm đã viết
+        Book book = getBookById(id);
         book.setTitle(bookDetails.getTitle());
         book.setIsbn(bookDetails.getIsbn());
         book.setPublishedYear(bookDetails.getPublishedYear());
