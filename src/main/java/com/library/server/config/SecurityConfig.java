@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/publishers", "/api/v1/publishers/**").permitAll()
                         .requestMatchers("/api/v1/loans", "/api/v1/loans/**").permitAll()
                         .requestMatchers("/api/v1/categories", "/api/v1/categories/**").permitAll()
+                        .requestMatchers("/api/v1/reservations", "/api/v1/reservations/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
