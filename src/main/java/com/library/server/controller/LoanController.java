@@ -3,6 +3,7 @@ package com.library.server.controller;
 import com.library.server.dto.request.LoanRequestDTO;
 import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.service.LoanService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,7 @@ public class LoanController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createLoan(@RequestBody LoanRequestDTO request) {
+    public ResponseEntity<String> createLoan(@RequestBody @Valid LoanRequestDTO request) {
         try {
             loanService.createNewLoan(request);
             return ResponseEntity.status(HttpStatus.CREATED).body("Tạo phiếu mượn thành công!");

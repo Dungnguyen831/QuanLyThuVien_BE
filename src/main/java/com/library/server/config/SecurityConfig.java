@@ -20,6 +20,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    // SWAGGER: http://localhost:8080/swagger-ui/index.html
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -34,6 +35,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Cho phép tất cả các request OPTIONS (tránh lỗi Preflight 403)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
