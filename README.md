@@ -27,9 +27,3 @@
 * Java Development Kit (JDK) 25
 * MySQL Server (đang chạy ở port 3306)
 * Maven (tùy chọn, dự án đã có sẵn Maven Wrapper)
-
-### Các bước cài đặt
-**Bước 1: Clone dự án về máy**
-```bash
-git clone [https://github.com/Dungnguyen831/QuanLyThuVien_BE.git](https://github.com/Dungnguyen831/QuanLyThuVien_BE.git)
-cd QuanLyThuVien_BE
