@@ -41,6 +41,9 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**"
                         ).permitAll()
+                        .requestMatchers("/api/v1/upload", "/api/v1/upload/**").permitAll()
+                        .requestMatchers("/api/v1/images/**").permitAll()
+
                         .requestMatchers("/api/v1/auth", "/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/books", "/api/v1/books/**").permitAll()
                         .requestMatchers("/api/v1/users", "/api/v1/users/**").permitAll()
@@ -69,4 +72,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
+
 }
