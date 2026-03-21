@@ -25,7 +25,10 @@ public class BookController {
     public ResponseEntity<List<Book>> getAll() {
         return ResponseEntity.ok(bookService.getAllBooks());
     }
-
+    @GetMapping("/{id}")
+    public ResponseEntity<Book> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(bookService.getBookById(id));
+    }
     /**
      * API Thêm mới sách: POST http://localhost:8080/api/v1/books
      * Chú ý: Sử dụng @RequestBody BookRequestDTO thay vì Book Entity trực tiếp.

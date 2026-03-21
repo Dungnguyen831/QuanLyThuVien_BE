@@ -28,7 +28,6 @@ public class BookCopy extends BaseEntity {
     @JsonIgnore
     private Shelf shelf;
 
-    // Trả về ID để khớp với yêu cầu không dùng DTO
     @JsonGetter("book_id")
     public Integer getBookIdJson() {
         return book != null ? book.getId() : null;

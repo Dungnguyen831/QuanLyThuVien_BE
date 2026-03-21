@@ -36,7 +36,11 @@ public class BookService {
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
     }
-
+    //lấy sách theo id
+    public Book getBookById(Integer id) {
+        return bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + id));
+    }
     /**
      * Hàm tạo sách mới: Chuyển đổi từ DTO (chứa ID) sang Entity (chứa Object).
      * @param dto Đối tượng chứa dữ liệu từ form Frontend gửi lên.

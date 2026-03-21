@@ -4,7 +4,9 @@ import com.library.server.entity.Book;
 import com.library.server.entity.BookCopy;
 import com.library.server.entity.Shelf;
 import com.library.server.repository.BookCopyRepository;
+import com.library.server.repository.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,37 +18,33 @@ public class BookCopyService {
     @Autowired
     private BookCopyRepository bookCopyRepository;
 
-    // Tạo bản sao mới
+    @Autowired
+    private BookRepository bookRepository;
+
     public BookCopy createCopy(BookCopy copy) {
         return bookCopyRepository.save(copy);
     }
-    //tạo bản sao mới theo số lượng
+
     public List<BookCopy> createMultipleCopiesManual(BookCopy template, int quantity) {
-        List<BookCopy> savedList = new ArrayList<>();
+        List<BookCopy> copies = new ArrayList<>();
 
-        // Lấy sẵn Book và Shelf từ template ra ngoài cho chắc
-        Book bookFromRequest = template.getBook();
-        Shelf shelfFromRequest = template.getShelf();
+        // Đảm bảo book tồn tại trong DB
+        Book book = bookRepository.findById(template.getBook().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + template.getBook().getId()));
 
-        for (int i = 1; i <= quantity; i++) {
-            try {
-                BookCopy newCopy = new BookCopy();
+        for (int i = 0; i < quantity; i++) {
+            BookCopy newCopy = new BookCopy();
+            newCopy.setBook(book);
+            newCopy.setConditionStatus(template.getConditionStatus());
+            newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
 
-                // PHẢI GÁN VÀO ĐỐI TƯỢNG MỚI (newCopy)
-                newCopy.setBook(bookFromRequest);
-                newCopy.setShelf(shelfFromRequest);
+            // Tạo barcode duy nhất bằng timestamp + số thứ tự i
+            newCopy.setBarcode("BC" + System.currentTimeMillis() + i);
 
-                newCopy.setConditionStatus(template.getConditionStatus());
-                newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
-                newCopy.setBarcode(template.getBarcode() + "-" + i + "-" + System.nanoTime());
-
-                // Lưu đối tượng đã được gán đầy đủ
-                savedList.add(bookCopyRepository.save(newCopy));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            copies.add(bookCopyRepository.save(newCopy));
         }
-        return savedList;
+        return copies;
+
     }
     // Xóa bản sao
     public void deleteCopy(Integer id) {
@@ -76,5 +74,9 @@ public class BookCopyService {
 
         // 4. Lưu lại (Trường updatedAt sẽ tự động cập nhật nhờ BaseEntity)
         return bookCopyRepository.save(copy);
+    }
+    //lấy bản sao theo book_id
+    public List<BookCopy> getCopiesByBookId(Integer bookId) {
+        return bookCopyRepository.findByBookId(bookId);
     }
 }

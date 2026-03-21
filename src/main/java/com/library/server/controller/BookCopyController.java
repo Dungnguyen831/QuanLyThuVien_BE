@@ -45,4 +45,9 @@ public class BookCopyController {
     public ResponseEntity<BookCopy> update(@PathVariable Integer id, @RequestBody BookCopy copy) {
         return ResponseEntity.ok(bookCopyService.updateCopy(id, copy));
     }
+    @GetMapping("/book/{bookId}")
+    public ResponseEntity<List<BookCopy>> getByBookId(@PathVariable Integer bookId) {
+        // Sử dụng hàm findByBookId đã có sẵn trong Repository của ông
+        return ResponseEntity.ok(bookCopyService.getCopiesByBookId(bookId));
+    }
 }
