@@ -34,4 +34,25 @@ public class LoanController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<LoanResponseDTO> getLoanById(@PathVariable Integer id) {
+        return ResponseEntity.ok(loanService.getLoanById(id));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getLoansByUserId(@PathVariable Integer userId) {
+        try {
+            List<LoanResponseDTO> loans = loanService.getLoansByUserId(userId);
+
+            // Nếu danh sách trống thì báo lỗi nhẹ nhàng
+            if (loans.isEmpty()) {
+                return ResponseEntity.ok("Độc giả này chưa có phiếu mượn nào.");
+            }
+
+            return ResponseEntity.ok(loans);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi lấy danh sách: " + e.getMessage());
+        }
+    }
 }
