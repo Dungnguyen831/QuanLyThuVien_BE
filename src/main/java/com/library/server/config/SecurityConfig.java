@@ -20,6 +20,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    // SWAGGER: http://localhost:8080/swagger-ui/index.html
 
     @Bean
     public PasswordEncoder passwordEncoder() {
