@@ -1,11 +1,13 @@
 package com.library.server.controller;
 
+import com.library.server.dto.request.BookRequestDTO;
 import com.library.server.entity.Book;
 import com.library.server.entity.BookCopy;
 import com.library.server.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +22,7 @@ public class BookController {
 
     // Lấy toàn bộ danh sách sách  http://localhost:8080/api/v1/books
     @GetMapping
+    @PreAuthorize("hasAuthority('user')")
     public ResponseEntity<List<Book>> getAll() {
         return ResponseEntity.ok(bookService.getAllBooks());
     }
@@ -44,14 +47,13 @@ public class BookController {
 
     // Thêm mới: POST http://localhost:8080/api/v1/books
     @PostMapping
-    public ResponseEntity<Book> create(@RequestBody Book book) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(bookService.createBook(book));
+    public ResponseEntity<Book> create(@RequestBody BookRequestDTO bookDTO) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(bookService.createBook(bookDTO));
     }
 
-    // Sửa: PUT http://localhost:8080/api/v1/books/2
     @PutMapping("/{id}")
-    public ResponseEntity<Book> update(@PathVariable Integer id, @RequestBody Book book) {
-        return ResponseEntity.ok(bookService.updateBook(id, book));
+    public ResponseEntity<Book> update(@PathVariable Integer id, @RequestBody BookRequestDTO bookDTO) {
+        return ResponseEntity.ok(bookService.updateBook(id, bookDTO));
     }
 
     // Xóa: DELETE http://localhost:8080/api/v1/books/2

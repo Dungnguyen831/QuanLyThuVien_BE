@@ -1,71 +1,112 @@
 package com.library.server.service;
 
 import com.library.server.dto.request.RegisterRequestDTO;
+import com.library.server.dto.request.LoginRequestDTO;
+import com.library.server.dto.response.LoginResponseDTO;
+import com.library.server.dto.response.UserDTO;
 import com.library.server.entity.Role;
 import com.library.server.entity.User;
 import com.library.server.repository.RoleRepository;
 import com.library.server.repository.UserRepository;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    // Inject các dependency thông qua Constructor (đã loại bỏ PasswordEncoder)
-    public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+
+    public AuthService(
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
 
+    @Transactional
     public String register(RegisterRequestDTO request) {
-        // 1. Kiểm tra xem Email đã tồn tại chưa
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email đã được sử dụng. Vui lòng chọn email khác!");
         }
 
-        // 2. Lấy Role mặc định từ DB
-        Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RuntimeException("Lỗi hệ thống: Không tìm thấy quyền mặc định (USER)."));
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            if (userRepository.findByPhone(request.getPhone()).isPresent()) {
+                throw new RuntimeException("Số điện thoại này đã được đăng ký. Vui lòng sử dụng số khác!");
+            }
+        }
 
-        // 3. Khởi tạo đối tượng User mới
+        Role userRole = roleRepository.findByName("user")
+                .orElseThrow(() -> new RuntimeException("Lỗi hệ thống: Không tìm thấy quyền mặc định (user)."));
+
         User newUser = new User();
         newUser.setFullName(request.getFullName());
         newUser.setEmail(request.getEmail());
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-
         newUser.setPhone(request.getPhone());
         newUser.setRole(userRole);
         newUser.setStatus("ACTIVE");
-        // 4. Lưu xuống CSDL
+
         userRepository.save(newUser);
         return "Đăng ký tài khoản thành công!";
     }
 
-    public com.library.server.dto.response.LoginResponseDTO login(com.library.server.dto.request.LoginRequestDTO request) {
-        // 1. Tìm User trong Database theo Email
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại!"));
-
-        // 2. So sánh mật khẩu (Đang so sánh chuỗi thuần túy vì không dùng mã hóa)
-        // So sánh mật khẩu nhập với hash đã lưu trong DB
-        // passwordEncoder.matches(plainPassword, hashedPassword)
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu hoặc tài khoản không chính xác!");
+    public LoginResponseDTO login(LoginRequestDTO request) {
+        try {
+            // 1. Cố gắng xác thực người dùng
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            // Lỗi sai mật khẩu hoặc email không tồn tại trong hệ thống xác thực
+            throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác!");
+        } catch (AuthenticationException e) {
+            // Các lỗi xác thực khác (tài khoản bị khóa, hết hạn, v.v.)
+            throw new RuntimeException("Xác thực thất bại: " + e.getMessage());
         }
-        // 3. Kiểm tra trạng thái tài khoản (Tùy chọn: chặn user bị khóa)
+
+        // 2. Nếu đi xuống được đây tức là đã đăng nhập thành công
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Lỗi hệ thống: Không tìm thấy tài khoản sau khi xác thực!"));
+
+        // 3. Kiểm tra trạng thái tài khoản (Active/Inactive)
         if ("INACTIVE".equalsIgnoreCase(user.getStatus())) {
             throw new RuntimeException("Tài khoản của bạn đã bị khóa!");
         }
-        // 4. Trả về thông tin cho người dùng nếu đăng nhập thành công
-        return new com.library.server.dto.response.LoginResponseDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRole() != null ? user.getRole().getName() : "NO_ROLE",
-                "Đăng nhập thành công!"
-        );
+
+        // 4. Sinh Token
+        String jwtToken = jwtService.generateToken(user);
+
+        // 5. Build DTO
+        UserDTO userDto = UserDTO.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .status(user.getStatus())
+                .role(user.getRole() != null ? user.getRole().getName() : "NO_ROLE")
+                .build();
+
+        return LoginResponseDTO.builder()
+                .message("Đăng nhập thành công!")
+                .token(jwtToken)
+                .user(userDto)
+                .build();
     }
 }

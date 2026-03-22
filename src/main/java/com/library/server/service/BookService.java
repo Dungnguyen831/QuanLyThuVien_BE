@@ -1,63 +1,74 @@
 package com.library.server.service;
 
-import com.library.server.dto.response.BookResponseDTO;
-import com.library.server.entity.Book;
-import com.library.server.entity.BookCopy;
-import com.library.server.repository.BookCopyRepository;
-import com.library.server.repository.BookRepository;
+import com.library.server.dto.request.BookRequestDTO;
+import com.library.server.entity.*;
+import com.library.server.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class BookService {
-    @Autowired
-    private BookRepository bookRepository;
+    @Autowired private BookRepository bookRepository;
+    @Autowired private BookCopyRepository bookCopyRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private AuthorRepository authorRepository;
+    @Autowired private PublisherRepository publisherRepository;
 
-    @Autowired
-    private BookCopyRepository bookCopyRepository;
-    //hiển thị tất cả danh sách
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
     }
-    //hiển thị sách theo id
+
     public Book getBookById(Integer id) {
         return bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + id));
     }
-    // tìm kiếm sách theo tên
+
     public List<Book> searchBooksByTitle(String title) {
         return bookRepository.findByTitleContainingIgnoreCase(title);
     }
-    // hiển thị danh sách bản sao của sách theo id sách
+
     public List<BookCopy> getCopiesByBookId(Integer bookId) {
         return bookCopyRepository.findByBookId(bookId);
     }
 
-    // Thêm mới sách
-    public Book createBook(Book book) {
+    // --- PHẦN SỬA ĐỔI CHÍNH ---
+
+    // Thêm mới sách bằng DTO
+    public Book createBook(BookRequestDTO dto) {
+        Book book = new Book();
+        mapDtoToEntity(dto, book);
         return bookRepository.save(book);
     }
-    // Cập nhật sách
-    public Book updateBook(Integer id, Book bookDetails) {
-        Book book = getBookById(id); // Tận dụng hàm tìm kiếm đã viết
-        book.setTitle(bookDetails.getTitle());
-        book.setIsbn(bookDetails.getIsbn());
-        book.setPublishedYear(bookDetails.getPublishedYear());
-        book.setTotalQty(bookDetails.getTotalQty());
-        book.setAvailableQty(bookDetails.getAvailableQty());
-        book.setImageUrl(bookDetails.getImageUrl());
 
-        // Cập nhật các mối quan hệ nếu có truyền vào
-        if (bookDetails.getCategory() != null) book.setCategory(bookDetails.getCategory());
-        if (bookDetails.getAuthor() != null) book.setAuthor(bookDetails.getAuthor());
-        if (bookDetails.getPublisher() != null) book.setPublisher(bookDetails.getPublisher());
-
+    // Cập nhật sách bằng DTO
+    public Book updateBook(Integer id, BookRequestDTO dto) {
+        Book book = getBookById(id);
+        mapDtoToEntity(dto, book);
         return bookRepository.save(book);
     }
-    // Xóa sách
+
+    // Hàm dùng chung để chuyển dữ liệu từ DTO sang Entity
+    private void mapDtoToEntity(BookRequestDTO dto, Book book) {
+        book.setTitle(dto.getTitle());
+        book.setIsbn(dto.getIsbn());
+        book.setPublishedYear(dto.getPublishedYear());
+        book.setTotalQty(dto.getTotalQty());
+        book.setAvailableQty(dto.getAvailableQty());
+        book.setImageUrl(dto.getImageUrl());
+
+        // Tìm các Object từ ID và gán vào Entity
+        if (dto.getCategoryId() != null) {
+            book.setCategory(categoryRepository.findById(dto.getCategoryId()).orElse(null));
+        }
+        if (dto.getAuthorId() != null) {
+            book.setAuthor(authorRepository.findById(dto.getAuthorId()).orElse(null));
+        }
+        if (dto.getPublisherId() != null) {
+            book.setPublisher(publisherRepository.findById(dto.getPublisherId()).orElse(null));
+        }
+    }
+
     public void deleteBook(Integer id) {
         Book book = getBookById(id);
         bookRepository.delete(book);
