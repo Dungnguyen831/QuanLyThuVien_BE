@@ -13,12 +13,16 @@ public class ShelfService {
     @Autowired
     private ShelfRepository shelfRepository;
 
-    public List<Shelf> getAllShelves() {
+    public List<Shelf> getAll() {
         return shelfRepository.findAll();
     }
 
-    public Optional<Shelf> getShelfById(Integer id) {
+    public Optional<Shelf> getById(Integer id) {
         return shelfRepository.findById(id);
+    }
+
+    public List<Shelf> search(String name){
+        return shelfRepository.findByNameContainingIgnoreCase(name);
     }
 
     public Shelf saveShelf(Shelf shelf) {

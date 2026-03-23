@@ -14,22 +14,25 @@ public class AuthorService {
     private AuthorRepository authorRepository;
 
     // Lấy danh sách tất cả tác giả
-    public List<Author> getAllAuthors() {
+    public List<Author> getAll() {
         return authorRepository.findAll();
     }
 
     // Lấy chi tiết 1 tác giả theo ID
-    public Optional<Author> getAuthorById(Integer id) {
+    public Optional<Author> getById(Integer id) {
         return authorRepository.findById(id);
     }
 
-    // Thêm mới hoặc cập nhật tác giả
-    public Author saveAuthor(Author author) {
+    // Tìm kiếm tác giả
+    public List<Author> search(String name) {
+        return authorRepository.findByNameContainingIgnoreCase(name);
+    }
+    //Cập nhật tác giả
+    public Author save(Author author){
         return authorRepository.save(author);
     }
-
     // Xóa tác giả
-    public void deleteAuthor(Integer id) {
+    public void delete(Integer id) {
         authorRepository.deleteById(id);
     }
 }

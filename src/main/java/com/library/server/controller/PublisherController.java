@@ -16,37 +16,31 @@ public class PublisherController {
     @Autowired
     private PublisherService publisherService;
 
-    // Lấy toàn bộ danh sách nhà xuất bản
+    // Lấy toàn bộ danh sách nhà xuất bản hoặc tìm kiếm (?name=...)
     @GetMapping
-    public List<Publisher> getAll() {
-        return publisherService.getAllPublishers();
+    public List<Publisher> list(@RequestParam(required = false)String name) {
+        if (name != null && !name.isEmpty()){
+        return publisherService.search(name);}
 //        http://localhost:8080/api/v1/publishers
-    }
-
-    // Lấy thông tin chi tiết 1 nhà xuất bản
-    @GetMapping("/{id}")
-    public ResponseEntity<Publisher> getById(@PathVariable Integer id) {
-        return publisherService.getPublisherById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return  publisherService.getAll();
 //        http://localhost:8080/api/v1/publishers/1
     }
 
     // Thêm mới nhà xuất bản
     @PostMapping
     public Publisher create(@RequestBody Publisher publisher) {
-        return publisherService.savePublisher(publisher);
+        return publisherService.save(publisher);
 //        http://localhost:8080/api/v1/publishers
     }
 
     // Cập nhật thông tin nhà xuất bản
     @PutMapping("/{id}")
     public ResponseEntity<Publisher> update(@PathVariable Integer id, @RequestBody Publisher details) {
-        return publisherService.getPublisherById(id).map(publisher -> {
+        return publisherService.getById(id).map(publisher -> {
             publisher.setName(details.getName());
             publisher.setAddress(details.getAddress());
             publisher.setEmail(details.getEmail());
-            return ResponseEntity.ok(publisherService.savePublisher(publisher));
+            return ResponseEntity.ok(publisherService.save(publisher));
         }).orElse(ResponseEntity.notFound().build());
 //        http://localhost:8080/api/v1/publishers/1
     }
@@ -54,7 +48,7 @@ public class PublisherController {
     // Xóa nhà xuất bản
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        publisherService.deletePublisher(id);
+        publisherService.delete(id);
         return ResponseEntity.ok().build();
     }
 }

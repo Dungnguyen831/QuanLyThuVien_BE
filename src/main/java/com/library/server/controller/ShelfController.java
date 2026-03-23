@@ -9,27 +9,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/shelves")
+@RequestMapping("/api/v1/shelves")
 @CrossOrigin("*")
 public class ShelfController {
 
     @Autowired
     private ShelfService shelfService;
 
-    // Lấy toàn bộ danh sách kệ sách
-    @GetMapping
-    public List<Shelf> list() {
-        return shelfService.getAllShelves();
-//        http://localhost:8080/api/v1/shelves
-    }
-
     // Lấy thông tin 1 kệ sách theo ID
     @GetMapping("/{id}")
     public ResponseEntity<Shelf> getById(@PathVariable Integer id) {
-        return shelfService.getShelfById(id)
+        return shelfService.getById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
 //        http://localhost:8080/api/v1/shelves/1
+    }
+    @GetMapping
+    public List<Shelf> list(@RequestParam(required = false) String name){
+        if( name != null && !name.isEmpty()){
+            return shelfService.search(name);
+        }
+        return shelfService.getAll();
     }
 
     // Thêm kệ sách mới
@@ -42,7 +42,7 @@ public class ShelfController {
     // Cập nhật kệ sách
     @PutMapping("/{id}")
     public ResponseEntity<Shelf> update(@PathVariable Integer id, @RequestBody Shelf details) {
-        return shelfService.getShelfById(id).map(shelf -> {
+        return shelfService.getById(id).map(shelf -> {
             shelf.setName(details.getName());
             shelf.setFloor(details.getFloor());
             return ResponseEntity.ok(shelfService.saveShelf(shelf));
