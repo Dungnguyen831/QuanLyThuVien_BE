@@ -8,6 +8,8 @@ import com.library.server.entity.User;
 import com.library.server.repository.ReservationRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -100,6 +102,61 @@ public class ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đặt chỗ với ID: " + id));
         reservationRepository.delete(reservation);
+    }
+
+    /**
+     * Get all reservations for a specific user with pagination
+     * @param userId User ID
+     * @param pageable Pagination information (page, size, sort)
+     * @return Page of ReservationResponseDTO
+     */
+    public Page<ReservationResponseDTO> getReservationsByUserId(Integer userId, Pageable pageable) {
+        // Validate user exists
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("User ID không hợp lệ");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Get paginated reservations
+        Page<Reservation> reservations = reservationRepository.findByUserId(userId, pageable);
+        
+        // Handle case when no reservations found
+        if (reservations.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Convert to DTO
+        return reservations.map(this::mapToDTO);
+    }
+
+    /**
+     * Get all reservations for a specific user without pagination
+     * @param userId User ID
+     * @return List of ReservationResponseDTO
+     */
+    public List<ReservationResponseDTO> getReservationsByUserIdList(Integer userId) {
+        // Validate user exists
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("User ID không hợp lệ");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Get reservations
+        List<Reservation> reservations = reservationRepository.findByUserId(userId);
+        
+        // Handle case when no reservations found
+        if (reservations.isEmpty()) {
+            return List.of();
+        }
+
+        // Convert to DTO
+        return reservations.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 }
 
