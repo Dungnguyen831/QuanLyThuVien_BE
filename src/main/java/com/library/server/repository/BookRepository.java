@@ -12,4 +12,6 @@ import java.util.List;
 public interface BookRepository extends JpaRepository<Book, Integer> {
     // Tìm kiếm theo tiêu đề (Like %title%)
     List<Book> findByTitleContainingIgnoreCase(String title);
+    // TÌm kiếm theo barcode
+    List<Book> findByIsbnContainingIgnoreCase(String isbn);
 }

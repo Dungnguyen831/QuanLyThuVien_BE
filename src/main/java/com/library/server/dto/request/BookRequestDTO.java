@@ -10,7 +10,13 @@ public class BookRequestDTO {
     private Integer totalQty;
     private Integer availableQty;
     private String imageUrl;
+    private String description;
+
+    // Chỉ nhận ID từ Frontend
     private Integer categoryId;
     private Integer authorId;
     private Integer publisherId;
+
+    private Integer initialCopies;
+    private Integer shelfId;
 }

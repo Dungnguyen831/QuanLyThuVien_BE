@@ -1,76 +1,133 @@
 package com.library.server.service;
 
-import com.library.server.dto.request.BookRequestDTO;
-import com.library.server.entity.*;
-import com.library.server.repository.*;
+import com.library.server.dto.request.BookRequestDTO; // Nhận dữ liệu thô từ Frontend
+import com.library.server.entity.Author;
+import com.library.server.entity.Book;
+import com.library.server.entity.Category;
+import com.library.server.entity.Publisher;
+import com.library.server.repository.AuthorRepository;
+import com.library.server.repository.BookRepository;
+import com.library.server.repository.CategoryRepository;
+import com.library.server.repository.PublisherRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
 public class BookService {
-    @Autowired private BookRepository bookRepository;
-    @Autowired private BookCopyRepository bookCopyRepository;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private AuthorRepository authorRepository;
-    @Autowired private PublisherRepository publisherRepository;
 
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private AuthorRepository authorRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private PublisherRepository publisherRepository;
+
+    /**
+     * Lấy tất cả sách để hiển thị lên bảng.
+     */
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
     }
-
+    //lấy sách theo id
     public Book getBookById(Integer id) {
         return bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + id));
     }
-
-    public List<Book> searchBooksByTitle(String title) {
-        return bookRepository.findByTitleContainingIgnoreCase(title);
-    }
-
-    public List<BookCopy> getCopiesByBookId(Integer bookId) {
-        return bookCopyRepository.findByBookId(bookId);
-    }
-
-    // --- PHẦN SỬA ĐỔI CHÍNH ---
-
-    // Thêm mới sách bằng DTO
+    /**
+     * Hàm tạo sách mới: Chuyển đổi từ DTO (chứa ID) sang Entity (chứa Object).
+     * @param dto Đối tượng chứa dữ liệu từ form Frontend gửi lên.
+     */
+    @Transactional
     public Book createBook(BookRequestDTO dto) {
+        // 1. Khởi tạo đối tượng Book mới
         Book book = new Book();
-        mapDtoToEntity(dto, book);
-        return bookRepository.save(book);
-    }
-
-    // Cập nhật sách bằng DTO
-    public Book updateBook(Integer id, BookRequestDTO dto) {
-        Book book = getBookById(id);
-        mapDtoToEntity(dto, book);
-        return bookRepository.save(book);
-    }
-
-    // Hàm dùng chung để chuyển dữ liệu từ DTO sang Entity
-    private void mapDtoToEntity(BookRequestDTO dto, Book book) {
         book.setTitle(dto.getTitle());
         book.setIsbn(dto.getIsbn());
         book.setPublishedYear(dto.getPublishedYear());
-        book.setTotalQty(dto.getTotalQty());
-        book.setAvailableQty(dto.getAvailableQty());
         book.setImageUrl(dto.getImageUrl());
 
-        // Tìm các Object từ ID và gán vào Entity
+        // Mặc định số lượng là 0 nếu không truyền vào
+        book.setTotalQty(dto.getTotalQty() != null ? dto.getTotalQty() : 0);
+        book.setAvailableQty(dto.getAvailableQty() != null ? dto.getAvailableQty() : 0);
+
+        // 2. Tìm kiếm và gán đối tượng Category từ categoryId
         if (dto.getCategoryId() != null) {
-            book.setCategory(categoryRepository.findById(dto.getCategoryId()).orElse(null));
+            Category cat = categoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Thể loại ID: " + dto.getCategoryId()));
+            book.setCategory(cat);
         }
+
+        // 3. Tìm kiếm và gán đối tượng Author từ authorId
         if (dto.getAuthorId() != null) {
-            book.setAuthor(authorRepository.findById(dto.getAuthorId()).orElse(null));
+            Author aut = authorRepository.findById(dto.getAuthorId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Tác giả ID: " + dto.getAuthorId()));
+            book.setAuthor(aut);
         }
+
+        // 4. Tìm kiếm và gán đối tượng Publisher từ publisherId
         if (dto.getPublisherId() != null) {
-            book.setPublisher(publisherRepository.findById(dto.getPublisherId()).orElse(null));
+            Publisher pub = publisherRepository.findById(dto.getPublisherId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy NXB ID: " + dto.getPublisherId()));
+            book.setPublisher(pub);
         }
+
+        // 5. Lưu xuống Database
+        return bookRepository.save(book);
     }
 
+    //  hàm update
+    @Transactional
+    public Book updateBook(Integer id, BookRequestDTO dto) {
+        // 1. Tìm sách cần sửa
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + id));
+
+        // 2. Cập nhật các trường cơ bản
+        book.setTitle(dto.getTitle());
+        book.setIsbn(dto.getIsbn());
+        book.setPublishedYear(dto.getPublishedYear());
+        book.setTotalQty(dto.getTotalQty() != null ? dto.getTotalQty() : book.getTotalQty());
+        book.setAvailableQty(dto.getAvailableQty() != null ? dto.getAvailableQty() : book.getAvailableQty());
+
+        // Chỉ cập nhật ảnh nếu có ảnh mới
+        if(dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
+            book.setImageUrl(dto.getImageUrl());
+        }
+
+        // 3. Cập nhật các khóa ngoại (Foreign Keys)
+        if (dto.getCategoryId() != null) {
+            Category cat = categoryRepository.findById(dto.getCategoryId()).orElse(null);
+            book.setCategory(cat);
+        }
+        if (dto.getAuthorId() != null) {
+            Author aut = authorRepository.findById(dto.getAuthorId()).orElse(null);
+            book.setAuthor(aut);
+        }
+        if (dto.getPublisherId() != null) {
+            Publisher pub = publisherRepository.findById(dto.getPublisherId()).orElse(null);
+            book.setPublisher(pub);
+        }
+
+
+        // 4. Lưu lại
+        return bookRepository.save(book);
+    }
+
+    /**
+     * Xóa sách theo ID.
+     */
     public void deleteBook(Integer id) {
-        Book book = getBookById(id);
-        bookRepository.delete(book);
+        if (!bookRepository.existsById(id)) {
+            throw new RuntimeException("Sách không tồn tại để xóa!");
+        }
+        bookRepository.deleteById(id);
     }
 }
