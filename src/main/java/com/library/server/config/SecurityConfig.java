@@ -20,6 +20,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    // SWAGGER: http://localhost:8080/swagger-ui/index.html
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -34,6 +35,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Cho phép tất cả các request OPTIONS (tránh lỗi Preflight 403)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -53,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/publishers", "/api/v1/publishers/**").permitAll()
                         .requestMatchers("/api/v1/loans", "/api/v1/loans/**").permitAll()
                         .requestMatchers("/api/v1/categories", "/api/v1/categories/**").permitAll()
+                        .requestMatchers("/api/v1/reservations", "/api/v1/reservations/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -12,8 +12,10 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class Loan extends BaseEntity {
     private LocalDateTime borrowDate;
+    private String note;
+
     // Nối với bảng User để biết ai mượn
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "user_id")
     private User user;
 }
