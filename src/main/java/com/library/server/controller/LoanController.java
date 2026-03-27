@@ -1,11 +1,8 @@
 package com.library.server.controller;
 
-import com.library.server.dto.request.LoanRequestDTO;
 import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.service.LoanService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,8 +11,7 @@ import java.util.List;
 @RequestMapping("/api/v1/loans")
 @CrossOrigin(origins = "*") // Chống lỗi CORS
 @RequiredArgsConstructor
-public class LoanApiController {
-
+public class LoanController {
     private final LoanService loanService;
 
     @GetMapping
