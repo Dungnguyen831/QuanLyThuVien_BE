@@ -35,7 +35,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Cho phép tất cả các request OPTIONS (tránh lỗi Preflight 403)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -57,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/loans", "/api/v1/loans/**").permitAll()
                         .requestMatchers("/api/v1/categories", "/api/v1/categories/**").permitAll()
                         .requestMatchers("/api/v1/reservations", "/api/v1/reservations/**").permitAll()
+                        .requestMatchers("/api/v1/reviews", "/api/v1/reviews/**").permitAll()
+                        .requestMatchers("/api/v1/wishlists", "/api/v1/wishlists/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
