@@ -16,6 +16,7 @@ public class Book extends BaseEntity {
     private Integer totalQty;
     private Integer availableQty;
     private String imageUrl;
+    private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
