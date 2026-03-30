@@ -24,6 +24,7 @@ public class UserController {
 
     // 1. Lấy danh sách (Có thể lọc theo role và search)
     // Ví dụ: GET /api/v1/users?role=user&keyword=nguyen
+    //@PreAuthorize("hasAnyRole('admin')")
     @GetMapping
     public ResponseEntity<List<UserResponseDTO>> getUsers(
             @RequestParam(required = false) String role,

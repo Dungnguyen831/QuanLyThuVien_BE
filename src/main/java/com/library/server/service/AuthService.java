@@ -39,6 +39,16 @@ public class AuthService {
 
     @Transactional
     public String register(RegisterRequestDTO request) {
+        // Validate password
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            throw new RuntimeException("Mật khẩu không được để trống!");
+        }
+        
+        // Có thể thêm validate độ dài mật khẩu nếu muốn
+        if (request.getPassword().length() < 6) {
+             throw new RuntimeException("Mật khẩu phải có ít nhất 6 ký tự!");
+        }
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email đã được sử dụng. Vui lòng chọn email khác!");
         }

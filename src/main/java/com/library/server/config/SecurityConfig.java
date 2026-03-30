@@ -1,5 +1,6 @@
 package com.library.server.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,10 +20,11 @@ import java.util.Collections;
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity
-//Phân quyền bằng PreAuthorize trong các controller
+// Phân quyền bằng PreAuthorize trong các controller
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider; // Nhận từ ApplicationConfig truyền sang
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -35,6 +37,14 @@ public class SecurityConfig {
                     config.setAllowCredentials(true);
                     return config;
                 }))
+                // THÊM PHẦN NÀY: Xử lý ngoại lệ khi không có token hoặc token sai (trả về đúng mã 401)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"status\": 401, \"error\": \"Unauthorized\", \"message\": \"Vui lòng cung cấp token hợp lệ để truy cập.\"}");
+                        })
+                )
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(
                                 "/api/v1/auth/**",
@@ -47,13 +57,13 @@ public class SecurityConfig {
                                 "/api/v1/loans/**",
                                 "/api/v1/loans",
                                 "/error"
-
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }
