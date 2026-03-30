@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/shelves")
+@RequestMapping("/api/v1/shelves")
 @CrossOrigin("*")
 public class ShelfController {
 
