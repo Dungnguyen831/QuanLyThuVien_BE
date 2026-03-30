@@ -8,6 +8,8 @@ import com.library.server.entity.User;
 import com.library.server.repository.ReservationRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 @Service
 public class ReservationService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
@@ -79,14 +82,30 @@ public class ReservationService {
 
     // Update reservation
     public ReservationResponseDTO updateReservation(Integer id, ReservationRequestDTO requestDTO) {
+        if (id == null || id <= 0) {
+            logger.warn("Invalid reservation ID for update: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
+
+        logger.info("Updating reservation ID: {}", id);
+
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đặt chỗ với ID: " + id));
+                .orElseThrow(() -> {
+                    logger.warn("Reservation not found for update: {}", id);
+                    return new IllegalArgumentException("Đặt chỗ không tồn tại");
+                });
 
         User user = userRepository.findById(requestDTO.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + requestDTO.getUserId()));
+                .orElseThrow(() -> {
+                    logger.warn("User not found for update: {}", requestDTO.getUserId());
+                    return new IllegalArgumentException("Người dùng không tồn tại");
+                });
 
         Book book = bookRepository.findById(requestDTO.getBookId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + requestDTO.getBookId()));
+                .orElseThrow(() -> {
+                    logger.warn("Book not found for update: {}", requestDTO.getBookId());
+                    return new IllegalArgumentException("Sách không tồn tại");
+                });
 
         reservation.setUser(user);
         reservation.setBook(book);
@@ -94,14 +113,26 @@ public class ReservationService {
         reservation.setStatus(requestDTO.getStatus());
 
         Reservation updatedReservation = reservationRepository.save(reservation);
+        logger.info("Reservation updated successfully: {}", id);
         return mapToDTO(updatedReservation);
     }
 
     // Delete reservation
     public void deleteReservation(Integer id) {
+        if (id == null || id <= 0) {
+            logger.warn("Invalid reservation ID for deletion: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
+
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đặt chỗ với ID: " + id));
+                .orElseThrow(() -> {
+                    logger.warn("Reservation not found for deletion: {}", id);
+                    return new IllegalArgumentException("Đặt chỗ không tồn tại");
+                });
+        
+        logger.info("Deleting reservation: {}", id);
         reservationRepository.delete(reservation);
+        logger.info("Reservation deleted successfully: {}", id);
     }
 
     /**
