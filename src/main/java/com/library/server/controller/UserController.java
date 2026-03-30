@@ -1,14 +1,19 @@
 package com.library.server.controller;
 
+import com.library.server.dto.request.UserRequestDTO;
 import com.library.server.dto.response.UserResponseDTO;
 import com.library.server.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users") // Đường dẫn gốc cho các API liên quan đến user
+@CrossOrigin("*") // Cho phép frontend gọi API
 public class UserController {
 
     private final UserService userService;
@@ -17,23 +22,89 @@ public class UserController {
         this.userService = userService;
     }
 
-    // API 1: Lấy tất cả người dùng (Method: GET)
-    // Đường dẫn: http://localhost:8080/api/users
+    // 1. Lấy danh sách (Có thể lọc theo role và search)
+    // Ví dụ: GET /api/v1/users?role=user&keyword=nguyen
+    //@PreAuthorize("hasAnyRole('admin')")
     @GetMapping
-    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        List<UserResponseDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<List<UserResponseDTO>> getUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String keyword) {
+        
+        if (role != null && !role.isEmpty()) {
+            return ResponseEntity.ok(userService.getUsersByRoleAndKeyword(role, keyword));
+        }
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // API 2: Lấy 1 người dùng theo ID (Method: GET)
-    // Đường dẫn ví dụ: http://localhost:8080/api/users/1
+    // 2. Lấy 1 người dùng theo ID (Method: GET)
+    // Đường dẫn ví dụ: http://localhost:8080/api/v1/users/1
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Integer id) {
         try {
             UserResponseDTO user = userService.getUserById(id);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    // 3. Thêm mới độc giả/người dùng
+    // POST /api/v1/users
+    @PostMapping
+    public ResponseEntity<?> createUser(@RequestBody UserRequestDTO requestDTO) {
+        try {
+            UserResponseDTO newUser = userService.createUser(requestDTO);
+            return ResponseEntity.ok(newUser);
+        } catch (RuntimeException e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    // 4. Cập nhật thông tin độc giả
+    // PUT /api/v1/users/{id}
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UserRequestDTO requestDTO) {
+        try {
+            UserResponseDTO updatedUser = userService.updateUser(id, requestDTO);
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    // 5. Khóa/Mở khóa độc giả
+    // PATCH /api/v1/users/{id}/status?status=INACTIVE
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> changeStatus(
+            @PathVariable Integer id, 
+            @RequestParam String status) {
+        try {
+            UserResponseDTO updatedUser = userService.changeStatus(id, status);
+            return ResponseEntity.ok(updatedUser);
+        } catch (RuntimeException e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    // 6. Xóa người dùng
+    // DELETE /api/v1/users/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
         }
     }
 }
