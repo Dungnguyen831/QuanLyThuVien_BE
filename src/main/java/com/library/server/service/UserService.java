@@ -1,8 +1,12 @@
 package com.library.server.service;
 
+import com.library.server.dto.request.UserRequestDTO;
 import com.library.server.dto.response.UserResponseDTO;
+import com.library.server.entity.Role;
 import com.library.server.entity.User;
+import com.library.server.repository.RoleRepository;
 import com.library.server.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +16,13 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // Hàm phụ trợ: Chuyển đổi từ User Entity sang UserResponseDTO để giấu mật khẩu
@@ -29,11 +37,17 @@ public class UserService {
                 .build();
     }
 
-    // Lấy danh sách TẤT CẢ người dùng
+    // Lấy TẤT CẢ người dùng
     public List<UserResponseDTO> getAllUsers() {
-        List<User> users = userRepository.findAll(); // JpaRepository đã viết sẵn hàm này
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
 
-        // Chuyển đổi danh sách Entity thành danh sách DTO
+    // 1. Lấy danh sách người dùng theo Role và tìm kiếm (có thể null keyword)
+    public List<UserResponseDTO> getUsersByRoleAndKeyword(String roleName, String keyword) {
+        List<User> users = userRepository.findByRoleNameAndKeyword(roleName, keyword);
         return users.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -41,9 +55,97 @@ public class UserService {
 
     // Lấy thông tin MỘT người dùng theo ID
     public UserResponseDTO getUserById(Integer id) {
-        User user = userRepository.findById(id) // JpaRepository đã viết sẵn hàm này
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        return mapToDTO(user);
+    }
+
+    // 2. Admin tạo người dùng mới
+    public UserResponseDTO createUser(UserRequestDTO requestDTO) {
+        if (userRepository.findByEmail(requestDTO.getEmail()).isPresent()) {
+            throw new RuntimeException("Email đã được sử dụng!");
+        }
+        if (requestDTO.getPhone() != null && !requestDTO.getPhone().trim().isEmpty()) {
+            if (userRepository.findByPhone(requestDTO.getPhone()).isPresent()) {
+                throw new RuntimeException("Số điện thoại này đã được đăng ký!");
+            }
+        }
+
+        Role userRole = roleRepository.findByName(requestDTO.getRoleName())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền: " + requestDTO.getRoleName()));
+
+        User newUser = new User();
+        newUser.setFullName(requestDTO.getFull_name());
+        newUser.setEmail(requestDTO.getEmail());
+        // Nếu admin không truyền password, có thể set mặc định (vd: 123456)
+        String pass = (requestDTO.getPassword() != null && !requestDTO.getPassword().isEmpty()) 
+                      ? requestDTO.getPassword() : "123456";
+        newUser.setPassword(passwordEncoder.encode(pass));
+        newUser.setPhone(requestDTO.getPhone());
+        newUser.setRole(userRole);
+        newUser.setStatus("ACTIVE");
+
+        User savedUser = userRepository.save(newUser);
+        return mapToDTO(savedUser);
+    }
+
+    // 3. Cập nhật thông tin người dùng
+    public UserResponseDTO updateUser(Integer id, UserRequestDTO requestDTO) {
+        User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
 
-        return mapToDTO(user);
+        // Kiểm tra email trùng với người KHÁC
+        if (!existingUser.getEmail().equals(requestDTO.getEmail())) {
+            if (userRepository.findByEmail(requestDTO.getEmail()).isPresent()) {
+                throw new RuntimeException("Email đã được sử dụng bởi tài khoản khác!");
+            }
+        }
+
+        // Kiểm tra phone trùng
+        if (requestDTO.getPhone() != null && !requestDTO.getPhone().isEmpty() && !requestDTO.getPhone().equals(existingUser.getPhone())) {
+            if (userRepository.findByPhone(requestDTO.getPhone()).isPresent()) {
+                throw new RuntimeException("Số điện thoại đã được sử dụng bởi tài khoản khác!");
+            }
+        }
+
+        existingUser.setFullName(requestDTO.getFull_name());
+        existingUser.setEmail(requestDTO.getEmail());
+        existingUser.setPhone(requestDTO.getPhone());
+
+        // Cập nhật mật khẩu nếu có
+        if (requestDTO.getPassword() != null && !requestDTO.getPassword().trim().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(requestDTO.getPassword()));
+        }
+
+        // Cập nhật quyền nếu có truyền lên
+        if(requestDTO.getRoleName() != null && !requestDTO.getRoleName().trim().isEmpty()){
+            Role role = roleRepository.findByName(requestDTO.getRoleName())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền: " + requestDTO.getRoleName()));
+            existingUser.setRole(role);
+        }
+
+        User updatedUser = userRepository.save(existingUser);
+        return mapToDTO(updatedUser);
+    }
+
+    // 4. Khóa/Mở khóa tài khoản
+    public UserResponseDTO changeStatus(Integer id, String newStatus) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+
+        if(!"ACTIVE".equalsIgnoreCase(newStatus) && !"INACTIVE".equalsIgnoreCase(newStatus)){
+            throw new RuntimeException("Trạng thái không hợp lệ. Chỉ chấp nhận ACTIVE hoặc INACTIVE");
+        }
+
+        user.setStatus(newStatus.toUpperCase());
+        User updatedUser = userRepository.save(user);
+        return mapToDTO(updatedUser);
+    }
+
+    // 5. Xóa người dùng
+    public void deleteUser(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+        userRepository.delete(user);
     }
 }
