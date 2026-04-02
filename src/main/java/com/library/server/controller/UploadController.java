@@ -22,7 +22,7 @@ import java.util.UUID;
 public class UploadController {
 
     // Sửa đường dẫn này chính xác tới thư mục image của bạn
-    private final String uploadDir = "C:\\xampp\\htdocs\\QuanLyThuVien_FE\\assets\\img";
+    private final String uploadDir = "D:/xampp/htdocs/QuanLyThuVien_FE/assets/img";
 
     @PostMapping
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
@@ -30,17 +30,12 @@ public class UploadController {
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
 
-            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            String fileName = file.getOriginalFilename();
             Path filePath = uploadPath.resolve(fileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             // Trả về URL để hiển thị ảnh
-            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/images/")
-                    .path(fileName)
-                    .toUriString();
-
-            return ResponseEntity.ok(Map.of("url", fileUrl));
+            return ResponseEntity.ok(Map.of("url", fileName));
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Map.of("message", e.getMessage()));
         }
