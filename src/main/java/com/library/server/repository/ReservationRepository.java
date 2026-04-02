@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Integer> {
@@ -20,5 +21,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
      * Find all reservations for a specific user with pagination
      */
     Page<Reservation> findByUserId(Integer userId, Pageable pageable);
+    
+    /**
+     * ✅ SECURITY: Find reservation by ID AND user ID (ownership verification)
+     * Ensures: WHERE id = ? AND user_id = ?
+     * This prevents users from accessing other users' reservations
+     */
+    Optional<Reservation> findByIdAndUserId(Integer id, Integer userId);
 }
 

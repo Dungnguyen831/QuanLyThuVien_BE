@@ -22,7 +22,7 @@ import java.util.UUID;
 public class UploadController {
 
     // Sửa đường dẫn này chính xác tới thư mục image của bạn
-    private final String uploadDir = "D:/img";
+    private final String uploadDir = "C:/image";
 
     @PostMapping
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
