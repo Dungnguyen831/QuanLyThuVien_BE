@@ -52,7 +52,7 @@ public class LoanService {
             String title = detail.getBookCopy().getBook().getTitle();
 
             return LoanResponseDTO.builder()
-                    .id("MP00" + detail.getLoan().getId()) // Giả lập mã phiếu MP001
+                    .id("MP" + String.format("%03d", detail.getLoan().getId()))
                     .userName(fullName)
                     .userAvatarColor("#0d6efd")
                     .bookName(title)
