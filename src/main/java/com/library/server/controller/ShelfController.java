@@ -1,8 +1,10 @@
 package com.library.server.controller;
 
-import com.library.server.entity.Shelf;
+import com.library.server.dto.request.ShelfRequestDTO;
+import com.library.server.dto.response.ShelfResponseDTO;
 import com.library.server.service.ShelfService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,50 +13,45 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/shelves")
 @CrossOrigin("*")
+@RequiredArgsConstructor // Sử dụng cái này thay cho @Autowired để đúng chuẩn hiện đại
 public class ShelfController {
 
-    @Autowired
-    private ShelfService shelfService;
+    private final ShelfService shelfService;
 
-    // Lấy thông tin 1 kệ sách theo ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Shelf> getById(@PathVariable Integer id) {
-        return shelfService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-//        http://localhost:8080/api/v1/shelves/1
-    }
+    // 1. Lấy danh sách hoặc tìm kiếm
     @GetMapping
-    public List<Shelf> list(@RequestParam(required = false) String name){
-        if( name != null && !name.isEmpty()){
-            return shelfService.search(name);
+    public ResponseEntity<List<ShelfResponseDTO>> list(@RequestParam(required = false) String name) {
+        if (name != null && !name.isEmpty()) {
+            // Nếu bạn chưa viết hàm search trong Service, hãy dùng tạm getAllShelves()
+            // hoặc xem hàm search bổ sung bên dưới
+            return ResponseEntity.ok(shelfService.search(name));
         }
-        return shelfService.getAll();
+        return ResponseEntity.ok(shelfService.getAllShelves());
     }
 
-    // Thêm kệ sách mới
+    // 2. Lấy 1 kệ theo ID
+    @GetMapping("/{id}")
+    public ResponseEntity<ShelfResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(shelfService.getShelfById(id));
+    }
+
+    // 3. Thêm mới kệ sách
     @PostMapping
-    public Shelf create(@RequestBody Shelf shelf) {
-        return shelfService.saveShelf(shelf);
-//        http://localhost:8080/api/v1/shelves
+    public ResponseEntity<ShelfResponseDTO> create(@RequestBody ShelfRequestDTO shelfRequestDTO) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(shelfService.createShelf(shelfRequestDTO));
     }
 
-    // Cập nhật kệ sách
+    // 4. Cập nhật kệ sách
     @PutMapping("/{id}")
-    public ResponseEntity<Shelf> update(@PathVariable Integer id, @RequestBody Shelf details) {
-        return shelfService.getById(id).map(shelf -> {
-            shelf.setName(details.getName());
-            shelf.setFloor(details.getFloor());
-            return ResponseEntity.ok(shelfService.saveShelf(shelf));
-        }).orElse(ResponseEntity.notFound().build());
-//        http://localhost:8080/api/v1/shelves/1
+    public ResponseEntity<ShelfResponseDTO> update(@PathVariable Integer id, @RequestBody ShelfRequestDTO shelfRequestDTO) {
+        return ResponseEntity.ok(shelfService.updateShelf(id, shelfRequestDTO));
     }
 
-    // Xóa kệ sách
+    // 5. Xóa kệ sách
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         shelfService.deleteShelf(id);
-        return ResponseEntity.ok().build();
-//        http://localhost:8080/api/v1/shelves/1
+        return ResponseEntity.noContent().build();
     }
 }
