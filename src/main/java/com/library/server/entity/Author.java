@@ -18,4 +18,14 @@ public class Author extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String biography;
+
+    @Column(nullable = false)
+    private String country;
+
+    @Column(nullable = false)
+    private Integer bookCount;
+
+    @Column(nullable = false)
+    private String Status;
+
 }
