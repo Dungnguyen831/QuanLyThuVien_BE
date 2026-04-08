@@ -6,7 +6,8 @@ import lombok.Data;
 @Data
 @Builder
 public class LoanResponseDTO {
-    private String id;              // Mã phiếu (VD: MP001)
+    private String id;
+    private Integer loanDetailId;// Mã phiếu (VD: MP001)
     private String userName;        // Tên Nguyễn Văn A
     private String userAvatarColor; // Màu ngẫu nhiên
     private String bookName;        // Tên sách

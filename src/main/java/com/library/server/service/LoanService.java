@@ -1,6 +1,8 @@
 package com.library.server.service;
 
 import com.library.server.dto.request.LoanRequestDTO;
+import com.library.server.dto.request.RenewLoanRequestDTO;
+import com.library.server.dto.request.ReturnBookRequestDTO;
 import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.entity.*;
 import com.library.server.repository.*;
@@ -26,6 +28,7 @@ public class LoanService {
     private final UserRepository userRepository;
     private final BookCopyRepository bookCopyRepository;
     private final BookRepository bookRepository;
+    private final FineRepository fineRepository;
 
     private static final String[] AVATAR_COLORS = {"#FF5733", "#33FF57", "#3357FF", "#F033FF", "#33FFF0"};
 
@@ -53,6 +56,7 @@ public class LoanService {
 
             return LoanResponseDTO.builder()
                     .id("MP" + String.format("%03d", detail.getLoan().getId()))
+                    .loanDetailId(detail.getId())
                     .userName(fullName)
                     .userAvatarColor("#0d6efd")
                     .bookName(title)
@@ -66,6 +70,12 @@ public class LoanService {
 
     @Transactional // Đảm bảo nếu lỗi giữa chừng thì sẽ rollback (hủy) toàn bộ
     public void createNewLoan(LoanRequestDTO request) {
+
+        Integer parsedUserId = Integer.parseInt(request.getUserId());
+        long unpaidFines = fineRepository.countByUserIdAndIsPaidFalse(parsedUserId);
+        if (unpaidFines > 0) {
+            throw new RuntimeException("Độc giả đang có khoản phạt chưa thanh toán. Yêu cầu đóng phạt trước khi mượn sách mới!");
+        }
         // 1. Lọc lấy ID số (VD: "US001" -> 1, "BK012" -> 12)
         Integer userId = extractId(request.getUserId());
         Integer bookId = extractId(request.getBookId());
@@ -81,6 +91,12 @@ public class LoanService {
             throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
         }
         BookCopy copyToBorrow = availableCopies.get(0); // Lấy cuốn đầu tiên tìm thấy
+        copyToBorrow.setAvailabilityStatus("BORROWED"); // Hoặc "BORROWED"
+        bookCopyRepository.save(copyToBorrow);
+
+        Book book = copyToBorrow.getBook();
+        book.setAvailableQty(book.getAvailableQty() - 1);
+        bookRepository.save(book);
 
         // 4. Tạo hóa đơn mượn (Bảng loans)
         Loan loan = new Loan();
@@ -120,7 +136,7 @@ public class LoanService {
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy độc giả!"));
 
         // 3. Tìm chi tiết mượn (Lấy cuốn sách đầu tiên trong phiếu)
-        LoanDetail detail = loanDetailRepository.findById(loan.getId()).stream().findFirst()
+        LoanDetail detail = loanDetailRepository.findByLoanId(loan.getId()).stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Phiếu mượn này chưa có sách nào!"));
 
         // 4. Tìm sách vật lý (Book Copy) và thông tin sách gốc (Book)
@@ -166,5 +182,155 @@ public class LoanService {
         }
 
         return resultList;
+    }
+
+    @Transactional
+    public void deleteLoan(Integer id) {
+        // 1. Tìm phiếu mượn tổng
+        Loan loan = loanRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mượn với ID: " + id));
+
+        // 2. Tìm TẤT CẢ sách con (chi tiết) nằm trong phiếu này
+        List<LoanDetail> details = loanDetailRepository.findByLoanId(id);
+
+        // 3. Kiểm tra ràng buộc: Có sách nào chưa trả không? (Bao trọn cả Đang mượn & Quá hạn)
+        for (LoanDetail detail : details) {
+            if (detail.getReturnDate() == null) {
+                throw new RuntimeException("Phiếu này đang có sách chưa trả (Đang mượn / Quá hạn). Không thể xóa để tránh mất dữ liệu!");
+            }
+        }
+
+        if (!details.isEmpty()) {
+            loanDetailRepository.deleteAll(details); // Xóa con
+        }
+
+        loanRepository.delete(loan); // Xóa mẹ
+    }
+
+    @Transactional
+    public void renewLoanDetail(Integer detailId, RenewLoanRequestDTO request) {
+        // 1. Tìm đúng cuốn sách đang mượn
+        LoanDetail detail = loanDetailRepository.findById(detailId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết mượn sách!"));
+
+        // 2. Chạy các hàm Ràng buộc (Ví dụ: Đã trả chưa, Có ai đặt trước không...)
+        if (detail.getReturnDate() != null) {
+            throw new RuntimeException("Sách này đã được trả, không thể gia hạn!");
+        }
+
+        if (detail.getDueDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Sách đã quá hạn! Bạn không thể gia hạn. Vui lòng mang sách đến thư viện để nộp phạt.");
+        }
+
+        // 3. Gia hạn
+        LocalDateTime newDueDate = LocalDate.parse(request.getNewDueDate()).atTime(23, 59, 59);
+        if (newDueDate.isBefore(detail.getDueDate())) {
+            throw new RuntimeException("Ngày mới phải sau ngày cũ!");
+        }
+
+        detail.setDueDate(newDueDate);
+        loanDetailRepository.save(detail);
+    }
+
+    @Transactional
+    public String returnLoanDetail(Integer detailId, ReturnBookRequestDTO request) {
+        // 1. Tìm chi tiết mượn
+        LoanDetail detail = loanDetailRepository.findById(detailId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết phiếu mượn!"));
+
+        if (detail.getReturnDate() != null) {
+            throw new RuntimeException("Cuốn sách này đã được trả trước đó!");
+        }
+
+        // 2. Cập nhật phiếu mượn
+        detail.setReturnDate(LocalDateTime.now());
+        detail.setStatus("returned");
+
+        // 3. Xử lý trạng thái vật lý
+        BookCopy copy = detail.getBookCopy();
+        String condition = (request != null && request.getConditionStatus() != null)
+                ? request.getConditionStatus().toUpperCase() : "GOOD";
+
+        copy.setConditionStatus(condition);
+
+        if (condition.equals("GOOD")) {
+            copy.setAvailabilityStatus("AVAILABLE");
+            Book book = copy.getBook();
+            book.setAvailableQty(book.getAvailableQty() + 1);
+            bookRepository.save(book);
+        } else {
+            // Sách hỏng/mất thì khóa lại, không cộng số lượng
+            copy.setAvailabilityStatus("UNAVAILABLE");
+        }
+        bookCopyRepository.save(copy);
+
+        // ==========================================
+        // 4. KIỂM TRA VÀ TỰ ĐỘNG TẠO PHẠT
+        // ==========================================
+        List<String> fineMessages = new ArrayList<>();
+        boolean hasFine = false;
+
+        // --- A. Phạt trễ hạn ---
+        if (LocalDateTime.now().isAfter(detail.getDueDate())) {
+            long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(
+                    detail.getDueDate().toLocalDate(),
+                    LocalDate.now()
+            );
+
+            if (daysOverdue > 0) {
+                Fine fineOverdue = new Fine();
+                fineOverdue.setUser(detail.getLoan().getUser());
+                fineOverdue.setLoanDetail(detail);
+                fineOverdue.setAmount(java.math.BigDecimal.valueOf(daysOverdue * 10000));
+                fineOverdue.setReason("Trả trễ hạn " + daysOverdue + " ngày");
+                fineOverdue.setIsPaid(false);
+                fineRepository.save(fineOverdue);
+
+                hasFine = true;
+                fineMessages.add("Trễ hạn (" + (daysOverdue * 10000) + "đ)");
+            }
+        }
+
+        // --- B. Phạt theo tình trạng (Hư hỏng / Mất) ---
+        if (condition.equals("DAMAGED")) {
+            Fine fineDamage = new Fine();
+            fineDamage.setUser(detail.getLoan().getUser());
+            fineDamage.setLoanDetail(detail);
+            fineDamage.setAmount(java.math.BigDecimal.valueOf(50000));
+
+            // Lấy thêm ghi chú mà thủ thư gõ vào form (ví dụ: Rách bìa sau)
+            String note = (request.getNote() != null && !request.getNote().isEmpty())
+                    ? " - " + request.getNote() : "";
+            fineDamage.setReason("Sách bị hư hỏng" + note);
+            fineDamage.setIsPaid(false);
+            fineRepository.save(fineDamage);
+
+            hasFine = true;
+            fineMessages.add("Hư hỏng sách (50.000đ)");
+
+        } else if (condition.equals("LOST")) {
+            Fine fineLost = new Fine();
+            fineLost.setUser(detail.getLoan().getUser());
+            fineLost.setLoanDetail(detail);
+            fineLost.setAmount(java.math.BigDecimal.valueOf(200000));
+            fineLost.setReason("Làm mất sách");
+            fineLost.setIsPaid(false);
+            fineRepository.save(fineLost);
+
+            hasFine = true;
+            fineMessages.add("Mất sách (200.000đ)");
+        }
+
+        // Lưu trạng thái hoàn tất
+        loanDetailRepository.save(detail);
+
+        // 5. Trả về thông báo động cho Frontend
+        if (!hasFine) {
+            return "Xác nhận trả sách thành công! Sách nguyên vẹn và đúng hạn.";
+        } else {
+            return "Trả sách thành công! Hệ thống đã tạo biên lai phạt: "
+                    + String.join(", ", fineMessages)
+                    + ". Vui lòng qua tab Tiền phạt để thu tiền.";
+        }
     }
 }
