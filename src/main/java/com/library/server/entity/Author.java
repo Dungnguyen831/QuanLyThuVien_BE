@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.FetchType;
 
 import java.util.List;
 
@@ -22,10 +24,19 @@ public class Author extends BaseEntity {
     @Column(nullable = false)
     private String country;
 
-    @Column(nullable = false)
-    private Integer bookCount;
+    @Column( nullable = true)
+    private Integer bookcount;
 
     @Column(nullable = false)
-    private String Status;
+    private String status;
+
+    // 2. Thêm cái "cầu nối" này vào bên trong class Author
+    @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
+    private List<Book> books;
+
+    // 3. Quan trọng nhất: Thêm Getter để Service có thể gọi được
+    public List<Book> getBooks() {
+        return this.books;
+    }
 
 }

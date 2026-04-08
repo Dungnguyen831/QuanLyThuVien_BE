@@ -13,7 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Đường dẫn này PHẢI giống hệt uploadDir trong UploadController
-        String uploadDir = "D:/img";
+        String uploadDir = "C:/image";
 
         Path uploadPath = Paths.get(uploadDir);
         String absolutePath = uploadPath.toFile().getAbsolutePath();

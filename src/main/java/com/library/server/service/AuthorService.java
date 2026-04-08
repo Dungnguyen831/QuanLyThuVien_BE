@@ -26,18 +26,37 @@ public class AuthorService {
         Author author = new Author();
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
+        author.setCountry(requestDTO.getCountry() != null ? requestDTO.getCountry() : "Unknown");
+
+        // Kiểm tra nếu null thì gán bằng 0, không để Hibernate nhìn thấy chữ Null
+        author.setBookcount(requestDTO.getBookcount() != null ? requestDTO.getBookcount() : 0);
+
+        author.setStatus(requestDTO.getStatus() != null ? requestDTO.getStatus() : "Đang hợp tác");
         return convertToResponeDTO(authorRepository.save(author));
     }
     public AuthorResponseDTO updateAuthor(Integer id, AuthorRequestDTO requestDTO){
         Author author = authorRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tác giả: " + id));
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
+        author.setBookcount(requestDTO.getBookcount());
+        author.setStatus(requestDTO.getStatus());
+        author.setCountry(requestDTO.getCountry());
         return convertToResponeDTO(authorRepository.save(author));
     }
-    public void deleteAuthor(Integer id){
-        if (!authorRepository.existsById(id)) {
-            throw new RuntimeException("Tác giả không tồn tại");
+    public void deleteAuthor(Integer id) {
+        // 1. Tìm tác giả, nếu không có thì báo lỗi luôn
+        Author author = authorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tác giả không tồn tại"));
+
+        // 2. KIỂM TRA RÀNG BUỘC: Nếu danh sách sách của tác giả này không trống
+        // Lưu ý: Đảm bảo trong Entity Author.java ông đã định nghĩa:
+        // @OneToMany(mappedBy = "author") private List<Book> books;
+        if (author.getBooks() != null && !author.getBooks().isEmpty()) {
+            throw new RuntimeException("Không thể xóa: Tác giả này hiện đang có "
+                    + author.getBooks().size() + " cuốn sách trong hệ thống!");
         }
+
+        // 3. Nếu không vướng sách nào thì mới cho xóa
         authorRepository.deleteById(id);
     }
     public List<AuthorResponseDTO> search(String name) {

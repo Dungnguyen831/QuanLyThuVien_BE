@@ -9,7 +9,7 @@ public class AuthorRequestDTO {
     private String name;
     private String biography;
     private String country;
-    private Integer bookCount;
-    private String Status;
+    private Integer bookcount;
+    private String status;
 
 }
