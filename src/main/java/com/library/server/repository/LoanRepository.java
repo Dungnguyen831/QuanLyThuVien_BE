@@ -2,6 +2,7 @@ package com.library.server.repository;
 
 import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.entity.Loan;
+import com.library.server.entity.LoanDetail;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
