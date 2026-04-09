@@ -56,6 +56,8 @@ public class SecurityConfig {
                                 "/api/v1/publishers",
                                 "/api/v1/loans/**",
                                 "/api/v1/loans",
+                                "/api/v1/shelves/**",
+                                "/api/v1/shelves",
                                 "/error"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -63,7 +65,6 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 }
