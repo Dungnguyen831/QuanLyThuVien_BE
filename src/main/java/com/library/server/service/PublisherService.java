@@ -12,20 +12,23 @@ public class PublisherService {
 
     @Autowired
     private PublisherRepository publisherRepository;
-
-    public List<Publisher> getAllPublishers() {
+//    Tìm kiếm hoặc tất cả
+    public List<Publisher> getAll() {
         return publisherRepository.findAll();
     }
 
-    public Optional<Publisher> getPublisherById(Integer id) {
+    public Optional<Publisher> getById(Integer id) {
         return publisherRepository.findById(id);
     }
-
-    public Publisher savePublisher(Publisher publisher) {
+    public List<Publisher> search(String name){
+        return publisherRepository.findByNameContainingIgnoreCase(name);
+    }
+//  Cập nhật tác giả
+    public Publisher save(Publisher publisher) {
         return publisherRepository.save(publisher);
     }
-
-    public void deletePublisher(Integer id) {
+//  Xoá tác giả
+    public void delete(Integer id) {
         publisherRepository.deleteById(id);
     }
 }
