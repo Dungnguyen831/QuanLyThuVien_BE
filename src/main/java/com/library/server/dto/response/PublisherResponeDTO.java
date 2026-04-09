@@ -5,13 +5,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class AuthorResponseDTO {
+public class PublisherResponeDTO {
     private Integer id;
     private String name;
-    private String biography;
-    private String country;
-    private Integer bookcount;
-    private String status;
+    private String address;
+    private String email;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

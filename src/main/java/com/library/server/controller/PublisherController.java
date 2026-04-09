@@ -25,6 +25,12 @@ public class PublisherController {
         return  publisherService.getAll();
 //        http://localhost:8080/api/v1/publishers/1
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<Publisher> getById(@PathVariable Integer id) {
+        return publisherService.getById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     // Thêm mới nhà xuất bản
     @PostMapping

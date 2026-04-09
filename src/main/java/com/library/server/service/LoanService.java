@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,8 @@ public class LoanService {
 
     private static final String[] AVATAR_COLORS = {"#FF5733", "#33FF57", "#3357FF", "#F033FF", "#33FFF0"};
 
+
+
     // Format ngày giờ cho đẹp trước khi gửi sang PHP
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -37,21 +40,26 @@ public class LoanService {
 
         // 2. Chuyển đổi (Map) từng dòng Entity sang DTO
         return details.stream().map(detail -> {
-            // Lấy tên User (xuyên qua bảng loans)
-            String fullName = detail.getLoan().getUser().getFullName();
 
-            // Lấy tên Sách (xuyên qua bảng book_copies -> books)
+            String realStatus = "borrowing";
+            if (detail.getReturnDate() != null) {
+                realStatus = "returned";
+            } else if (detail.getDueDate() != null && detail.getDueDate().isBefore(LocalDateTime.now())) {
+                realStatus = "overdue";
+            }
+
+            String fullName = detail.getLoan().getUser().getFullName();
             String title = detail.getBookCopy().getBook().getTitle();
 
             return LoanResponseDTO.builder()
-                    .id("MP00" + detail.getLoan().getId()) // Giả lập mã phiếu MP001
+                    .id("MP" + String.format("%03d", detail.getLoan().getId()))
                     .userName(fullName)
-                    .userAvatarColor("#0d6efd") // Tạm fix cứng 1 màu xanh
+                    .userAvatarColor("#0d6efd")
                     .bookName(title)
                     .borrowDate(detail.getLoan().getBorrowDate().format(formatter))
                     .dueDate(detail.getDueDate().format(formatter))
                     .returnDate(detail.getReturnDate() != null ? detail.getReturnDate().format(formatter) : "-")
-                    .status(detail.getStatus())
+                    .status(realStatus)
                     .build();
         }).collect(Collectors.toList());
     }
