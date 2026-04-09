@@ -4,9 +4,12 @@ import com.library.server.dto.request.ReviewRequestDTO;
 import com.library.server.dto.response.ReviewResponseDTO;
 import com.library.server.service.ReviewService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
@@ -47,6 +50,12 @@ public class ReviewController {
         }
     }
 
+    @GetMapping("/book/{bookId}")
+    public ResponseEntity<List<ReviewResponseDTO>> getReviewsByBookId(@PathVariable Integer bookId) {
+        List<ReviewResponseDTO> reviews = reviewService.getReviewsByBookId(bookId);
+        return ResponseEntity.ok(reviews);
+    }
+
     // PUT /api/v1/reviews/{id} - Update review
     @PutMapping("/{id}")
     public ResponseEntity<?> updateReview(@PathVariable Integer id,
@@ -64,9 +73,17 @@ public class ReviewController {
     public ResponseEntity<?> deleteReview(@PathVariable Integer id) {
         try {
             reviewService.deleteReview(id);
-            return ResponseEntity.ok("Đánh giá đã được xóa thành công");
+            // ✅ Trả về JSON response
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đánh giá đã được xóa thành công",
+                    "id", id
+            ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         }
     }
 }

@@ -86,10 +86,14 @@ public class ReviewService {
         Book book = bookRepository.findById(requestDTO.getBookId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + requestDTO.getBookId()));
 
+        // Cập nhật thông tin review
         review.setUser(user);
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
+        // Thời gian updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
+        // Nhưng có thể set explicit nếu cần:
+        // review.setUpdatedAt(LocalDateTime.now());
 
         Review updatedReview = reviewRepository.save(review);
         return mapToDTO(updatedReview);
@@ -100,5 +104,20 @@ public class ReviewService {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đánh giá với ID: " + id));
         reviewRepository.delete(review);
+    }
+
+    // Get reviews by book ID (Cách 2: Custom Query)
+    public List<ReviewResponseDTO> getReviewsByBookId(Integer bookId) {
+        // Kiểm tra sách có tồn tại hay không
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + bookId));
+
+        // Gọi custom query từ Repository
+        List<Review> reviews = reviewRepository.findByBookId(bookId);
+
+        // Convert Entity sang DTO
+        return reviews.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 }
