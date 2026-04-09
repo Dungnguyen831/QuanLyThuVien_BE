@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 @Builder
 public class ReservationRequestDTO {
     
-    @NotNull(message = "User ID không được null")
-    @Positive(message = "User ID phải > 0")
+    // ✅ SECURITY: userId không bắt buộc - lấy từ JWT token
+    // FE không cần gửi userId trong request body
     private Integer userId;
     
     @NotNull(message = "Book ID không được null")
@@ -23,7 +23,8 @@ public class ReservationRequestDTO {
     private Integer bookId;
     
     @NotNull(message = "Reservation date không được null")
-    @FutureOrPresent(message = "Reservation date phải là hiện tại hoặc tương lai")
+    // ✅ FIXED: Relax validation - cho phép sửa dates đã qua (cho CREATE & UPDATE)
+    // @FutureOrPresent quá strict - người dùng cần sửa lại dates cũ trong UPDATE
     private LocalDateTime reservationDate;
     
     @NotBlank(message = "Status không được trống")
