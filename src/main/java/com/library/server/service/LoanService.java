@@ -32,8 +32,6 @@ public class LoanService {
 
     private static final String[] AVATAR_COLORS = {"#FF5733", "#33FF57", "#3357FF", "#F033FF", "#33FFF0"};
 
-
-
     // Format ngày giờ cho đẹp trước khi gửi sang PHP
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -52,6 +50,8 @@ public class LoanService {
             }
 
             String fullName = detail.getLoan().getUser().getFullName();
+
+            // Lấy tên Sách (xuyên qua bảng book_copies -> books)
             String title = detail.getBookCopy().getBook().getTitle();
 
             return LoanResponseDTO.builder()
