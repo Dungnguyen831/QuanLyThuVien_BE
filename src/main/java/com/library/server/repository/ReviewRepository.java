@@ -18,7 +18,7 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
     // Alternative: Có thể sử dụng derived query (Spring tự generate SQL)
     // List<Review> findByBook_IdOrderByCreatedAtDesc(Integer bookId);
-    
+
     // ✅ NEW: Find review by ID AND user ID (ownership verification)
     // Ensures: WHERE id = ? AND user_id = ?
     // This prevents users from accessing/modifying other users' reviews

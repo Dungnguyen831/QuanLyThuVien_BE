@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class ReviewService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReviewService.class);
-    
+
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
@@ -52,9 +52,9 @@ public class ReviewService {
             logger.warn("Invalid authenticated user ID: {}", authenticatedUserId);
             throw new IllegalArgumentException("User ID không hợp lệ");
         }
-        
+
         logger.info("User {} creating review for bookId: {}", authenticatedUserId, requestDTO.getBookId());
-        
+
         User user = userRepository.findById(authenticatedUserId)
                 .orElseThrow(() -> {
                     logger.warn("Authenticated user not found: {}", authenticatedUserId);
@@ -90,7 +90,7 @@ public class ReviewService {
             logger.warn("Invalid review ID for update: {}", id);
             throw new IllegalArgumentException("ID không hợp lệ");
         }
-        
+
         if (authenticatedUserId == null || authenticatedUserId <= 0) {
             logger.warn("Invalid authenticated user ID for update: {}", authenticatedUserId);
             throw new IllegalArgumentException("User ID không hợp lệ");
@@ -111,11 +111,10 @@ public class ReviewService {
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
 
-        // Cập nhật thông tin review
+        review.setUser(user);
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
-        // ✅ updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
 
         Review updatedReview = reviewRepository.save(review);
         logger.info("User {} successfully updated review {}", authenticatedUserId, id);
@@ -129,7 +128,7 @@ public class ReviewService {
             logger.warn("Invalid review ID for deletion: {}", id);
             throw new IllegalArgumentException("ID không hợp lệ");
         }
-        
+
         if (authenticatedUserId == null || authenticatedUserId <= 0) {
             logger.warn("Invalid authenticated user ID for deletion: {}", authenticatedUserId);
             throw new IllegalArgumentException("User ID không hợp lệ");
@@ -143,7 +142,7 @@ public class ReviewService {
                     logger.warn("User {} attempted to delete review {} that they don't own", authenticatedUserId, id);
                     return new IllegalArgumentException("Đánh giá không tồn tại hoặc không phải của bạn");
                 });
-        
+
         logger.info("User {} deleting review: {}", authenticatedUserId, id);
         reviewRepository.delete(review);
         logger.info("User {} successfully deleted review: {}", authenticatedUserId, id);
