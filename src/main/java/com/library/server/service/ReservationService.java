@@ -234,5 +234,56 @@ public class ReservationService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * ✅ ADMIN ONLY: Get reservation by ID without ownership check
+     * Used by admin to view any reservation in the system
+     * @param id Reservation ID
+     * @return ReservationResponseDTO
+     */
+    public ReservationResponseDTO getReservationByIdForAdmin(Integer id) {
+        // Validate ID
+        if (id == null || id <= 0) {
+            logger.warn("Invalid reservation ID for admin: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
+
+        logger.info("Admin retrieving reservation ID: {}", id);
+
+        // Get reservation without ownership check
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.warn("Reservation not found for admin: {}", id);
+                    return new IllegalArgumentException("Đặt chỗ không tồn tại");
+                });
+
+        logger.info("Admin successfully retrieved reservation: {}", id);
+        return mapToDTO(reservation);
+    }
+
+    /**
+     * ✅ ADMIN ONLY: Get all reservations in the system
+     * Used for admin management dashboard
+     * @return List of all ReservationResponseDTO
+     */
+    public List<ReservationResponseDTO> getAllReservations() {
+        logger.info("Admin fetching all reservations for system management");
+
+        // Get all reservations from database
+        List<Reservation> allReservations = reservationRepository.findAll();
+
+        logger.debug("Found {} total reservations in system", allReservations.size());
+
+        // Handle case when no reservations found
+        if (allReservations.isEmpty()) {
+            logger.info("No reservations found in system");
+            return List.of();
+        }
+
+        // Convert to DTO
+        return allReservations.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
 }
 

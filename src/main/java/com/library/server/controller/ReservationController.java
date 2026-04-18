@@ -60,10 +60,10 @@ public class ReservationController {
     }
 
 
-    // GET /api/v1/reservations/{id} - Get reservation by ID
-    @GetMapping("/{id}")
+    // GET /api/v1/reservations/user/{id} - Get user's specific reservation by ID
+    @GetMapping("/user/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> getReservationById(
+    public ResponseEntity<?> getReservationByUserId(
             @PathVariable Integer id,
             @AuthenticationPrincipal User authenticatedUser) {  // ✅ Extract from JWT
         try {
@@ -202,6 +202,76 @@ public class ReservationController {
         }
     }
 
+    /**
+     * ✅ ADMIN ONLY: GET /api/v1/reservations/{id} - Get reservation by ID (for admin management)
+     * 
+     * Gets a specific reservation by ID without ownership check
+     * Only accessible to ADMIN users
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getReservationForAdmin(
+            @PathVariable Integer id) {
+        try {
+            if (id == null || id <= 0) {
+                logger.warn("Invalid reservation ID: {}", id);
+                return ResponseEntity.badRequest().body(
+                    new ErrorResponseBody("ID không hợp lệ", 400)
+                );
+            }
+
+            logger.info("Admin fetching reservation ID: {}", id);
+
+            // ✅ Get reservation by ID without ownership check (admin can view any reservation)
+            ReservationResponseDTO reservation = reservationService.getReservationByIdForAdmin(id);
+
+            // Get book details
+            try {
+                Book book = bookService.getBookById(reservation.getBookId());
+                
+                java.util.HashMap<String, Object> result = new java.util.HashMap<String, Object>() {{
+                    put("id", reservation.getId());
+                    put("userId", reservation.getUserId());
+                    put("reservationDate", reservation.getReservationDate());
+                    put("status", reservation.getStatus());
+                    put("createdAt", reservation.getCreatedAt());
+                    put("updatedAt", reservation.getUpdatedAt());
+                    
+                    // Book details
+                    if (book != null) {
+                        put("bookId", book.getId());
+                        put("title", book.getTitle());
+                        put("isbn", book.getIsbn());
+                        put("publishedYear", book.getPublishedYear());
+                        put("totalQty", book.getTotalQty());
+                        put("availableQty", book.getAvailableQty());
+                        put("imageUrl", book.getImageUrl());
+                        put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
+                        put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
+                        put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
+                    }
+                }};
+
+                logger.info("Admin successfully retrieved reservation {}", id);
+                return ResponseEntity.ok(result);
+            } catch (Exception e) {
+                logger.warn("Error fetching book details for reservation: {}", id, e);
+                // Return reservation without book details
+                return ResponseEntity.ok(reservation);
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("Reservation not found: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                new ErrorResponseBody("Đặt chỗ không tồn tại", 404)
+            );
+        } catch (Exception e) {
+            logger.error("Error retrieving reservation {} for admin", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                new ErrorResponseBody("Lỗi máy chủ. Vui lòng thử lại sau.", 500)
+            );
+        }
+    }
+
     // DELETE /api/v1/reservations/{id} - Delete reservation
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -232,6 +302,75 @@ public class ReservationController {
         }
     }
 
+    /**
+     * ✅ ADMIN ONLY: GET /api/v1/reservations - Get all reservations (for admin management)
+     * 
+     * Returns all reservations in the system with book details
+     * Only accessible to ADMIN users
+     */
+    @GetMapping
+    public ResponseEntity<?> getAllReservations() {
+        try {
+            logger.info("Admin fetching all reservations for management");
+
+            // Get all reservations from service
+            List<ReservationResponseDTO> reservations = 
+                reservationService.getAllReservations();
+
+            // Map to object combining Reservation + Book info
+            List<Object> result = reservations.stream()
+                .map(reservation -> {
+                    try {
+                        Book book = bookService.getBookById(reservation.getBookId());
+                        
+                        return new java.util.HashMap<String, Object>() {{
+                            put("id", reservation.getId());
+                            put("userId", reservation.getUserId());
+                            put("reservationDate", reservation.getReservationDate());
+                            put("status", reservation.getStatus());
+                            put("createdAt", reservation.getCreatedAt());
+                            put("updatedAt", reservation.getUpdatedAt());
+                            
+                            // Book details (null-safe)
+                            if (book != null) {
+                                put("bookId", book.getId());
+                                put("title", book.getTitle());
+                                put("isbn", book.getIsbn());
+                                put("publishedYear", book.getPublishedYear());
+                                put("totalQty", book.getTotalQty());
+                                put("availableQty", book.getAvailableQty());
+                                put("imageUrl", book.getImageUrl());
+                                put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
+                                put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
+                                put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
+                            }
+                        }};
+                    } catch (Exception e) {
+                        logger.warn("Error fetching book details for reservation: {}", reservation.getId(), e);
+                        // Return reservation without book details if error occurs
+                        return new java.util.HashMap<String, Object>() {{
+                            put("id", reservation.getId());
+                            put("userId", reservation.getUserId());
+                            put("reservationDate", reservation.getReservationDate());
+                            put("status", reservation.getStatus());
+                            put("createdAt", reservation.getCreatedAt());
+                            put("updatedAt", reservation.getUpdatedAt());
+                            put("bookId", reservation.getBookId());
+                        }};
+                    }
+                })
+                .collect(Collectors.toList());
+
+            logger.info("Retrieved {} total reservations for admin management", result.size());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error retrieving all reservations for admin", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                new ErrorResponseBody("Lỗi máy chủ. Vui lòng thử lại sau.", 500)
+            );
+        }
+    }
+    
     /**
      * Inner class for error response
      */
