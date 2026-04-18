@@ -1,6 +1,8 @@
 package com.library.server.controller;
 
 import com.library.server.dto.request.LoanRequestDTO;
+import com.library.server.dto.request.RenewLoanRequestDTO;
+import com.library.server.dto.request.ReturnBookRequestDTO;
 import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.service.LoanService;
 import jakarta.validation.Valid;
@@ -45,7 +47,6 @@ public class LoanController {
         try {
             List<LoanResponseDTO> loans = loanService.getLoansByUserId(userId);
 
-            // Nếu danh sách trống thì báo lỗi nhẹ nhàng
             if (loans.isEmpty()) {
                 return ResponseEntity.ok("Độc giả này chưa có phiếu mượn nào.");
             }
@@ -53,6 +54,42 @@ public class LoanController {
             return ResponseEntity.ok(loans);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi khi lấy danh sách: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteLoan(@PathVariable Integer id) {
+        try {
+            loanService.deleteLoan(id);
+            return ResponseEntity.ok("Đã xóa phiếu mượn thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi khi xóa: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/details/{detailId}/renew")
+    public ResponseEntity<String> renewLoanDetail(
+            @PathVariable Integer detailId,
+            @RequestBody RenewLoanRequestDTO request) {
+        try {
+            loanService.renewLoanDetail(detailId, request);
+            return ResponseEntity.ok("Gia hạn thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/details/{detailId}/return")
+    public ResponseEntity<String> returnBook(
+            @PathVariable Integer detailId,
+            @RequestBody(required = false) ReturnBookRequestDTO request) {
+        try {
+            String resultMessage = loanService.returnLoanDetail(detailId, request);
+
+            // Gửi thẳng câu thông báo đó về cho màn hình alert của Frontend
+            return ResponseEntity.ok(resultMessage);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi trả sách: " + e.getMessage());
         }
     }
 }
