@@ -266,18 +266,24 @@ public class ReservationController {
                 );
             }
             logger.info("User {} updating reservation ID: {}", authenticatedUser.getId(), id);
+            logger.debug("Update request - bookId: {}, status: {}, date: {}",
+                requestDTO.getBookId(), requestDTO.getStatus(), requestDTO.getReservationDate());
+
             // ✅ SECURITY: Pass authenticatedUser.getId() for ownership verification
             ReservationResponseDTO reservation = reservationService.updateReservation(id, authenticatedUser.getId(), requestDTO);
+
+            logger.info("Successfully updated reservation {} for user {}", id, authenticatedUser.getId());
             return ResponseEntity.ok(reservation);
+
         } catch (IllegalArgumentException e) {
             logger.warn("Update failed for user {}: {}", authenticatedUser.getId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new ErrorResponseBody("Đặt chỗ không tồn tại", 404)
             );
         } catch (Exception e) {
-            logger.error("Error updating reservation {} for user: {}", id, authenticatedUser.getId(), e);
+            logger.error("Error updating reservation {} for user: {} - Exception: {}", id, authenticatedUser.getId(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                new ErrorResponseBody("Lỗi máy chủ. Vui lòng thử lại sau.", 500)
+                new ErrorResponseBody("Lỗi máy chủ: " + e.getMessage(), 500)
             );
         }
     }
