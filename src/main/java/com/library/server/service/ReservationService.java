@@ -127,7 +127,10 @@ public class ReservationService {
             throw new IllegalArgumentException("User ID không hợp lệ");
         }
 
-        logger.info("User {} updating reservation ID: {}", authenticatedUserId, id);
+        logger.info("=== START UPDATE RESERVATION ===");
+        logger.info("Reservation ID: {}, User ID: {}", id, authenticatedUserId);
+        logger.debug("Request data - BookID: {}, Date: {}, Status: {}",
+            requestDTO.getBookId(), requestDTO.getReservationDate(), requestDTO.getStatus());
 
         // ✅ CRITICAL: Use findByIdAndUserId to verify OWNERSHIP
         Reservation reservation = reservationRepository.findByIdAndUserId(id, authenticatedUserId)
@@ -135,27 +138,39 @@ public class ReservationService {
                     logger.warn("User {} attempted to update reservation {} that they don't own", authenticatedUserId, id);
                     return new IllegalArgumentException("Đặt chỗ không tồn tại");
                 });
+        logger.debug("Found reservation to update: ID={}", reservation.getId());
 
         User user = userRepository.findById(authenticatedUserId)
                 .orElseThrow(() -> {
                     logger.warn("Authenticated user not found: {}", authenticatedUserId);
                     return new IllegalArgumentException("Người dùng không tồn tại");
                 });
+        logger.debug("Found user: {}", user.getEmail());
 
         Book book = bookRepository.findById(requestDTO.getBookId())
                 .orElseThrow(() -> {
                     logger.warn("Book not found for update: {}", requestDTO.getBookId());
                     return new IllegalArgumentException("Sách không tồn tại");
                 });
+        logger.debug("Found book: {}", book.getTitle());
 
+        // Update reservation data
         reservation.setUser(user);
         reservation.setBook(book);
         reservation.setReservationDate(requestDTO.getReservationDate());
         reservation.setStatus(requestDTO.getStatus());
+        logger.debug("Updated reservation object with new values");
 
-        Reservation updatedReservation = reservationRepository.save(reservation);
-        logger.info("User {} successfully updated reservation {}", authenticatedUserId, id);
-        return mapToDTO(updatedReservation);
+        try {
+            Reservation updatedReservation = reservationRepository.save(reservation);
+            logger.info("User {} successfully updated reservation {}", authenticatedUserId, id);
+            logger.info("=== END UPDATE RESERVATION - SUCCESS ===");
+            return mapToDTO(updatedReservation);
+        } catch (Exception e) {
+            logger.error("Error saving updated reservation: {}", e.getMessage(), e);
+            logger.error("=== END UPDATE RESERVATION - FAILED ===");
+            throw e;
+        }
     }
 
     // Delete reservation

@@ -53,6 +53,7 @@ public class BookService {
         book.setIsbn(dto.getIsbn());
         book.setPublishedYear(dto.getPublishedYear());
         book.setImageUrl(dto.getImageUrl());
+        book.setDescription(dto.getDescription());
 
         // Mặc định số lượng là 0 nếu không truyền vào
         book.setTotalQty(dto.getTotalQty() != null ? dto.getTotalQty() : 0);
@@ -94,13 +95,10 @@ public class BookService {
         book.setTitle(dto.getTitle());
         book.setIsbn(dto.getIsbn());
         book.setPublishedYear(dto.getPublishedYear());
+        book.setImageUrl(dto.getImageUrl());
         book.setTotalQty(dto.getTotalQty() != null ? dto.getTotalQty() : book.getTotalQty());
         book.setAvailableQty(dto.getAvailableQty() != null ? dto.getAvailableQty() : book.getAvailableQty());
-
-        // Chỉ cập nhật ảnh nếu có ảnh mới
-        if(dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
-            book.setImageUrl(dto.getImageUrl());
-        }
+        book.setDescription(dto.getDescription());
 
         // 3. Cập nhật các khóa ngoại (Foreign Keys)
         if (dto.getCategoryId() != null) {
