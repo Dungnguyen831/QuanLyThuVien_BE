@@ -92,4 +92,14 @@ public class LoanController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi trả sách: " + e.getMessage());
         }
     }
+
+    @PostMapping("/from-reservation/{reservationId}")
+    public ResponseEntity<String> createLoanFromReservation(@PathVariable Integer reservationId) {
+        try {
+            loanService.createLoanFromReservation(reservationId);
+            return ResponseEntity.ok("Giao sách và tạo phiếu mượn thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

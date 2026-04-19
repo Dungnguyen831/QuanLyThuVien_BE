@@ -111,7 +111,6 @@ public class ReviewService {
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
 
-        review.setUser(user);
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());

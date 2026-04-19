@@ -15,6 +15,11 @@ public class ReservationResponseDTO {
     private Integer id;
     private Integer userId;
     private Integer bookId;
+
+    private String userName;     // Tên sinh viên
+    private String userEmail;    // Email sinh viên
+    private String bookName;     // Tên sách
+
     private LocalDateTime reservationDate;
     private String status;
     private LocalDateTime createdAt;
