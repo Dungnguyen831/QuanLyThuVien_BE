@@ -309,6 +309,7 @@ public class ReservationController {
      * Only accessible to ADMIN users
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllReservations() {
         try {
             logger.info("Admin fetching all reservations for management");

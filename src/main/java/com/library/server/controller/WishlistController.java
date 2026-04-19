@@ -35,7 +35,6 @@ public class WishlistController {
      * ✅ FIXED: Map wishlist items to Book objects with full details
      */
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyWishlist(@AuthenticationPrincipal User authenticatedUser) {
         try {
             Integer userId = authenticatedUser.getId();
@@ -63,7 +62,6 @@ public class WishlistController {
      * ✅ FIXED: Never trust userId from request input
      */
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> addToWishlist(
             @AuthenticationPrincipal User authenticatedUser,
             @RequestBody WishlistRequestDTO requestDTO) {
@@ -91,7 +89,6 @@ public class WishlistController {
      * ✅ FIXED: Added @PreAuthorize and @AuthenticationPrincipal
      */
     @DeleteMapping("/{bookId}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> removeFromWishlist(
             @AuthenticationPrincipal User authenticatedUser,
             @PathVariable Integer bookId) {

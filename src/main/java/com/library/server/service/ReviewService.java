@@ -111,10 +111,11 @@ public class ReviewService {
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
 
-        review.setUser(user);
+        // Update review data (keep existing user, update book/rating/comment)
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
+        // ✅ updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
 
         Review updatedReview = reviewRepository.save(review);
         logger.info("User {} successfully updated review {}", authenticatedUserId, id);

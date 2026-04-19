@@ -271,7 +271,7 @@ public class ReservationService {
 
         // Get all reservations from database
         List<Reservation> allReservations = reservationRepository.findAll();
-
+        
         logger.debug("Found {} total reservations in system", allReservations.size());
 
         // Handle case when no reservations found

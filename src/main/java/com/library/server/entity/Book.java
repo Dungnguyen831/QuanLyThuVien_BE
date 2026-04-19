@@ -40,6 +40,13 @@ public class Book extends BaseEntity {
     @JsonGetter("author_id")
     public Integer getAuthorIdId() { return author != null ? author.getId() : null; }
 
+    @JsonGetter("category_name")
+    public String getCategoryName() {
+        return category != null ? category.getName() : null;
+    }
+
     @JsonGetter("publisher_id")
     public Integer getPublisherIdId() { return publisher != null ? publisher.getId() : null; }
+
+
 }
