@@ -148,4 +148,22 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
         userRepository.delete(user);
     }
+
+    // 6. Đổi mật khẩu (dành cho User tự đổi, yêu cầu mật khẩu cũ)
+    public void changePassword(Integer id, com.library.server.dto.request.ChangePasswordDTO requestDTO) {
+        // 1. Lấy thông tin user từ DB
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+
+        // 2. Kiểm tra mật khẩu cũ có khớp với trong Database không
+        // passwordEncoder.matches(chữ_thô_người_dùng_nhập, chuỗi_đã_băm_trong_DB)
+        if (!passwordEncoder.matches(requestDTO.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu hiện tại không chính xác!");
+        }
+
+        // 3. Nếu khớp -> Mã hóa mật khẩu mới và lưu lại
+        user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));
+        userRepository.save(user);
+    }
+
 }
