@@ -8,37 +8,52 @@ import com.library.server.entity.User;
 import com.library.server.repository.ReservationRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
+@RequiredArgsConstructor
 public class ReservationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final BookService bookService;
 
-    public ReservationService(ReservationRepository reservationRepository,
-                              UserRepository userRepository,
-                              BookRepository bookRepository) {
-        this.reservationRepository = reservationRepository;
-        this.userRepository = userRepository;
-        this.bookRepository = bookRepository;
-    }
 
     // Helper method: Convert Reservation Entity to ReservationResponseDTO
     private ReservationResponseDTO mapToDTO(Reservation reservation) {
+        // Xử lý an toàn null cho Tên và Email
+        String finalUserName = "Không xác định";
+        String finalUserEmail = "";
+        if (reservation.getUser() != null) {
+            finalUserName = reservation.getUser().getFullName();
+            finalUserEmail = reservation.getUser().getEmail();
+        }
+
+        // Xử lý an toàn null cho Tên sách
+        String finalBookName = "Sách không tồn tại / Đã xóa";
+        if (reservation.getBook() != null) {
+            finalBookName = reservation.getBook().getTitle(); // Lấy title gắn vào bookName
+        }
+
+        // Trả về đúng DTO gọn gàng của bạn
         return ReservationResponseDTO.builder()
                 .id(reservation.getId())
                 .userId(reservation.getUser() != null ? reservation.getUser().getId() : null)
                 .bookId(reservation.getBook() != null ? reservation.getBook().getId() : null)
+                .userName(finalUserName)
+                .userEmail(finalUserEmail)
+                .bookName(finalBookName)
                 .reservationDate(reservation.getReservationDate())
                 .status(reservation.getStatus())
                 .createdAt(reservation.getCreatedAt())
@@ -81,12 +96,8 @@ public class ReservationService {
     }
 
     // Get all reservations
-    public List<ReservationResponseDTO> getAllReservations() {
-        List<Reservation> reservations = reservationRepository.findAll();
-        return reservations.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
+    // ✅ REMOVED: This method is not exposed in Controller endpoint
+    // FE uses getReservationsByUserId() with pagination or getReservationsByUserIdList() instead
 
     // Get reservation by ID
     public ReservationResponseDTO getReservationById(Integer id, Integer authenticatedUserId) {
@@ -127,7 +138,10 @@ public class ReservationService {
             throw new IllegalArgumentException("User ID không hợp lệ");
         }
 
-        logger.info("User {} updating reservation ID: {}", authenticatedUserId, id);
+        logger.info("=== START UPDATE RESERVATION ===");
+        logger.info("Reservation ID: {}, User ID: {}", id, authenticatedUserId);
+        logger.debug("Request data - BookID: {}, Date: {}, Status: {}",
+            requestDTO.getBookId(), requestDTO.getReservationDate(), requestDTO.getStatus());
 
         // ✅ CRITICAL: Use findByIdAndUserId to verify OWNERSHIP
         Reservation reservation = reservationRepository.findByIdAndUserId(id, authenticatedUserId)
@@ -135,27 +149,39 @@ public class ReservationService {
                     logger.warn("User {} attempted to update reservation {} that they don't own", authenticatedUserId, id);
                     return new IllegalArgumentException("Đặt chỗ không tồn tại");
                 });
+        logger.debug("Found reservation to update: ID={}", reservation.getId());
 
         User user = userRepository.findById(authenticatedUserId)
                 .orElseThrow(() -> {
                     logger.warn("Authenticated user not found: {}", authenticatedUserId);
                     return new IllegalArgumentException("Người dùng không tồn tại");
                 });
+        logger.debug("Found user: {}", user.getEmail());
 
         Book book = bookRepository.findById(requestDTO.getBookId())
                 .orElseThrow(() -> {
                     logger.warn("Book not found for update: {}", requestDTO.getBookId());
                     return new IllegalArgumentException("Sách không tồn tại");
                 });
+        logger.debug("Found book: {}", book.getTitle());
 
+        // Update reservation data
         reservation.setUser(user);
         reservation.setBook(book);
         reservation.setReservationDate(requestDTO.getReservationDate());
         reservation.setStatus(requestDTO.getStatus());
+        logger.debug("Updated reservation object with new values");
 
-        Reservation updatedReservation = reservationRepository.save(reservation);
-        logger.info("User {} successfully updated reservation {}", authenticatedUserId, id);
-        return mapToDTO(updatedReservation);
+        try {
+            Reservation updatedReservation = reservationRepository.save(reservation);
+            logger.info("User {} successfully updated reservation {}", authenticatedUserId, id);
+            logger.info("=== END UPDATE RESERVATION - SUCCESS ===");
+            return mapToDTO(updatedReservation);
+        } catch (Exception e) {
+            logger.error("Error saving updated reservation: {}", e.getMessage(), e);
+            logger.error("=== END UPDATE RESERVATION - FAILED ===");
+            throw e;
+        }
     }
 
     // Delete reservation
@@ -185,43 +211,6 @@ public class ReservationService {
         logger.info("User {} successfully deleted reservation: {}", authenticatedUserId, id);
     }
 
-    /**
-     * Get all reservations for a specific user with pagination
-     * ✅ SECURITY: Validates that user exists before querying
-     * @param userId User ID (must be from authenticated user - controller already validates)
-     * @param pageable Pagination information (page, size, sort)
-     * @return Page of ReservationResponseDTO
-     */
-    public Page<ReservationResponseDTO> getReservationsByUserId(Integer userId, Pageable pageable) {
-        // Validate user ID format
-        if (userId == null || userId <= 0) {
-            logger.warn("Invalid userId provided: {}", userId);
-            throw new IllegalArgumentException("User ID không hợp lệ");
-        }
-        
-        // Verify user exists (security check - should only reach here if user is from JWT token)
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    logger.warn("Attempted to access non-existent user: {}", userId);
-                    return new IllegalArgumentException("Người dùng không tồn tại");
-                });
-
-        logger.info("Fetching reservations for authenticated user: {} ({})", userId, user.getEmail());
-
-        // Get paginated reservations - Repository handles WHERE user_id = ?
-        Page<Reservation> reservations = reservationRepository.findByUserId(userId, pageable);
-        
-        logger.debug("Found {} total reservations for user: {}", reservations.getTotalElements(), userId);
-
-        // Handle case when no reservations found
-        if (reservations.isEmpty()) {
-            logger.info("No reservations found for user: {}", userId);
-            return Page.empty(pageable);
-        }
-
-        // Convert to DTO
-        return reservations.map(this::mapToDTO);
-    }
 
     /**
      * Get all reservations for a specific user without pagination
@@ -260,6 +249,83 @@ public class ReservationService {
         return reservations.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ ADMIN ONLY: Get reservation by ID without ownership check
+     * Used by admin to view any reservation in the system
+     * @param id Reservation ID
+     * @return ReservationResponseDTO
+     */
+    public ReservationResponseDTO getReservationByIdForAdmin(Integer id) {
+        // Validate ID
+        if (id == null || id <= 0) {
+            logger.warn("Invalid reservation ID for admin: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
+
+        logger.info("Admin retrieving reservation ID: {}", id);
+
+        // Get reservation without ownership check
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.warn("Reservation not found for admin: {}", id);
+                    return new IllegalArgumentException("Đặt chỗ không tồn tại");
+                });
+
+        logger.info("Admin successfully retrieved reservation: {}", id);
+        return mapToDTO(reservation);
+    }
+
+    /**
+     * ✅ ADMIN ONLY: Get all reservations in the system
+     * Used for admin management dashboard
+     * @return List of all ReservationResponseDTO
+     */
+    public List<ReservationResponseDTO> getAllReservations() {
+        logger.info("Admin fetching all reservations for system management");
+
+        // Get all reservations from database
+        List<Reservation> allReservations = reservationRepository.findAll();
+
+        logger.debug("Found {} total reservations in system", allReservations.size());
+
+        // Handle case when no reservations found
+        if (allReservations.isEmpty()) {
+            logger.info("No reservations found in system");
+            return List.of();
+        }
+
+        // Convert to DTO
+        return allReservations.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public void updateStatus(Integer id, String newStatus) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu đặt với ID: " + id));
+
+        String oldStatus = reservation.getStatus();
+
+        if ("pending".equalsIgnoreCase(oldStatus) && "approved".equalsIgnoreCase(newStatus)) {
+            Book book = reservation.getBook();
+            if (book.getAvailableQty() <= 0) {
+                throw new RuntimeException("Sách này hiện đã hết trong kho, không thể duyệt!");
+            }
+            book.setAvailableQty(book.getAvailableQty() - 1);
+            bookRepository.save(book);
+        }
+
+        else if ("approved".equalsIgnoreCase(oldStatus) && "cancelled".equalsIgnoreCase(newStatus)) {
+            Book book = reservation.getBook();
+            book.setAvailableQty(book.getAvailableQty() + 1);
+            bookRepository.save(book);
+        }
+
+        reservation.setStatus(newStatus);
+        reservationRepository.save(reservation);
+        logger.info("Admin đã cập nhật trạng thái phiếu {} thành {}", id, newStatus);
     }
 }
 

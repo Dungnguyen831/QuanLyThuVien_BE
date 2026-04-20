@@ -38,6 +38,13 @@ public class BookService {
     }
     //lấy sách theo id
     public Book getBookById(Integer id) {
+
+        if (id == null) {
+            throw new RuntimeException("Lỗi: ID sách truyền vào bị rỗng (null)!");
+            // Hoặc nếu bạn không muốn ném lỗi mà chỉ muốn trả về null thì dùng:
+            // return null;
+        }
+
         return bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + id));
     }

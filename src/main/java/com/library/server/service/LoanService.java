@@ -29,6 +29,7 @@ public class LoanService {
     private final BookCopyRepository bookCopyRepository;
     private final BookRepository bookRepository;
     private final FineRepository fineRepository;
+    private final ReservationRepository reservationRepository;
 
     private static final String[] AVATAR_COLORS = {"#FF5733", "#33FF57", "#3357FF", "#F033FF", "#33FFF0"};
 
@@ -332,5 +333,54 @@ public class LoanService {
                     + String.join(", ", fineMessages)
                     + ". Vui lòng qua tab Tiền phạt để thu tiền.";
         }
+    }
+
+    @Transactional
+    public void createLoanFromReservation(Integer reservationId) {
+        // 1. Tìm phiếu đặt
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt với ID: " + reservationId));
+
+        if (!"approved".equalsIgnoreCase(reservation.getStatus())) {
+            throw new RuntimeException("Chỉ có thể giao sách cho phiếu đặt đang ở trạng thái Chờ nhận sách!");
+        }
+
+        // 2. Kiểm tra độc giả có bị phạt không (Tái sử dụng logic cũ của bạn)
+        long unpaidFines = fineRepository.countByUserIdAndIsPaidFalse(reservation.getUser().getId());
+        if (unpaidFines > 0) {
+            throw new RuntimeException("Độc giả đang có khoản phạt chưa thanh toán. Yêu cầu đóng phạt trước khi nhận sách!");
+        }
+
+        // 3. Tìm 1 bản sao của sách đang rảnh và trừ số lượng (Tái sử dụng logic cũ)
+        List<BookCopy> availableCopies = bookCopyRepository.findByBookId(reservation.getBook().getId());
+        if (availableCopies.isEmpty()) {
+            throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho để giao!");
+        }
+        BookCopy copyToBorrow = availableCopies.get(0);
+        copyToBorrow.setAvailabilityStatus("BORROWED");
+        bookCopyRepository.save(copyToBorrow);
+
+        Book book = copyToBorrow.getBook();
+        book.setAvailableQty(book.getAvailableQty() - 1);
+        bookRepository.save(book);
+
+        // 4. Tạo hóa đơn mượn (Bảng loans)
+        Loan loan = new Loan();
+        loan.setUser(reservation.getUser());
+        loan.setBorrowDate(LocalDateTime.now()); // Lấy thời gian thực tế lúc giao sách
+        loan.setNote("Tạo tự động từ phiếu đặt #RES" + String.format("%03d", reservationId));
+        loan = loanRepository.save(loan);
+
+        // 5. Tạo chi tiết mượn (Mặc định cho mượn 14 ngày)
+        LoanDetail detail = new LoanDetail();
+        detail.setLoan(loan);
+        detail.setBookCopy(copyToBorrow);
+        detail.setDueDate(LocalDateTime.now().plusDays(14));
+        detail.setStatus("borrowing");
+        loanDetailRepository.save(detail);
+
+        // 6. CHỐT HẠ: Đổi trạng thái phiếu đặt thành "completed"
+        reservation.setStatus("completed");
+        reservationRepository.save(reservation);
     }
 }

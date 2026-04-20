@@ -13,8 +13,8 @@ public class BookResponseDTO {
     private Integer id;
     private String isbn;
     private String title;
-    private String authorName;   // Trả về tên để JS hiển thị luôn
-    private String categoryName; // Trả về tên để JS hiển thị luôn
+    private String authorName;
+    private String categoryName;
     private String publisherName;
     private Integer publishedYear;
     private Integer totalQty;
