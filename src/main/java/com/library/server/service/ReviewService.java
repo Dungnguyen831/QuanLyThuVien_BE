@@ -37,6 +37,7 @@ public class ReviewService {
         return ReviewResponseDTO.builder()
                 .id(review.getId())
                 .userId(review.getUser() != null ? review.getUser().getId() : null)
+                .fullName(review.getUser() != null ? review.getUser().getFullName() : null)  // ✅ NEW: Get fullName from User
                 .bookId(review.getBook() != null ? review.getBook().getId() : null)
                 .rating(review.getRating())
                 .comment(review.getComment())
@@ -70,6 +71,7 @@ public class ReviewService {
         Review review = Review.builder()
                 .user(user)
                 .book(book)
+
                 .rating(requestDTO.getRating())
                 .comment(requestDTO.getComment())
                 .build();

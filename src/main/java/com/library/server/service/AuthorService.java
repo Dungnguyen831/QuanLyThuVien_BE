@@ -26,21 +26,17 @@ public class AuthorService {
         Author author = new Author();
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
-        author.setCountry(requestDTO.getCountry() != null ? requestDTO.getCountry() : "Unknown");
 
         // Kiểm tra nếu null thì gán bằng 0, không để Hibernate nhìn thấy chữ Null
-        author.setBookcount(requestDTO.getBookcount() != null ? requestDTO.getBookcount() : 0);
 
-        author.setStatus(requestDTO.getStatus() != null ? requestDTO.getStatus() : "Đang hợp tác");
+
         return convertToResponeDTO(authorRepository.save(author));
     }
     public AuthorResponseDTO updateAuthor(Integer id, AuthorRequestDTO requestDTO){
         Author author = authorRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tác giả: " + id));
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
-        author.setBookcount(requestDTO.getBookcount());
-        author.setStatus(requestDTO.getStatus());
-        author.setCountry(requestDTO.getCountry());
+
         return convertToResponeDTO(authorRepository.save(author));
     }
     public void deleteAuthor(Integer id) {

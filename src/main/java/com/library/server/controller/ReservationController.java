@@ -2,10 +2,7 @@ package com.library.server.controller;
 
 import com.library.server.dto.request.ReservationRequestDTO;
 import com.library.server.dto.response.ReservationResponseDTO;
-import com.library.server.entity.Book;
-import com.library.server.entity.Reservation;
 import com.library.server.entity.User;
-import com.library.server.service.BookService;
 import com.library.server.service.ReservationService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -18,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/reservations")
@@ -27,11 +23,9 @@ public class ReservationController {
     private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
 
     private final ReservationService reservationService;
-    private final BookService bookService;
 
-    public ReservationController(ReservationService reservationService, BookService bookService) {
+    public ReservationController(ReservationService reservationService) {
         this.reservationService = reservationService;
-        this.bookService = bookService;
     }
 
     // POST /api/v1/reservations - Create a new reservation
@@ -103,52 +97,9 @@ public class ReservationController {
         try {
             logger.info("User {} fetching reservations with book details", authenticatedUser.getId());
 
-            // ✅ Uses authenticated user's ID from JWT, not from request
-            List<ReservationResponseDTO> reservations = 
-                reservationService.getReservationsByUserIdList(authenticatedUser.getId());
-
-            // Map to object combining Reservation + Book info
-            List<Object> result = reservations.stream()
-                .map(reservation -> {
-                    try {
-                        Book book = bookService.getBookById(reservation.getBookId());
-                        
-                        return new java.util.HashMap<String, Object>() {{
-                            put("id", reservation.getId());
-                            put("reservationDate", reservation.getReservationDate());
-                            put("status", reservation.getStatus());
-                            put("createdAt", reservation.getCreatedAt());
-                            put("updatedAt", reservation.getUpdatedAt());
-                            
-                            // Book details (null-safe)
-                            if (book != null) {
-                                put("bookId", book.getId());
-                                put("title", book.getTitle());
-                                put("isbn", book.getIsbn());
-                                put("publishedYear", book.getPublishedYear());
-                                put("totalQty", book.getTotalQty());
-                                put("availableQty", book.getAvailableQty());
-                                put("imageUrl", book.getImageUrl());
-                                put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
-                                put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
-                                put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
-                            }
-                        }};
-                    } catch (Exception e) {
-                        logger.warn("Error fetching book details for reservation: {} by user: {}", 
-                            reservation.getId(), authenticatedUser.getId(), e);
-                        // Return reservation without book details if error occurs
-                        return new java.util.HashMap<String, Object>() {{
-                            put("id", reservation.getId());
-                            put("reservationDate", reservation.getReservationDate());
-                            put("status", reservation.getStatus());
-                            put("createdAt", reservation.getCreatedAt());
-                            put("updatedAt", reservation.getUpdatedAt());
-                            put("bookId", reservation.getBookId());
-                        }};
-                    }
-                })
-                .collect(Collectors.toList());
+            // ✅ Call service to get reservations with book details (logic moved to service)
+            List<java.util.Map<String, Object>> result =
+                reservationService.getMyReservationsWithBooksDetail(authenticatedUser.getId());
 
             logger.info("Retrieved {} reservations with book details for user: {}", result.size(), authenticatedUser.getId());
             return ResponseEntity.ok(result);
@@ -222,43 +173,11 @@ public class ReservationController {
 
             logger.info("Admin fetching reservation ID: {}", id);
 
-            // ✅ Get reservation by ID without ownership check (admin can view any reservation)
-            ReservationResponseDTO reservation = reservationService.getReservationByIdForAdmin(id);
+            // ✅ Call service to get reservation with book details (logic moved to service)
+            java.util.Map<String, Object> result = reservationService.getReservationWithBooksDetail(id);
 
-            // Get book details
-            try {
-                Book book = bookService.getBookById(reservation.getBookId());
-                
-                java.util.HashMap<String, Object> result = new java.util.HashMap<String, Object>() {{
-                    put("id", reservation.getId());
-                    put("userId", reservation.getUserId());
-                    put("reservationDate", reservation.getReservationDate());
-                    put("status", reservation.getStatus());
-                    put("createdAt", reservation.getCreatedAt());
-                    put("updatedAt", reservation.getUpdatedAt());
-                    
-                    // Book details
-                    if (book != null) {
-                        put("bookId", book.getId());
-                        put("title", book.getTitle());
-                        put("isbn", book.getIsbn());
-                        put("publishedYear", book.getPublishedYear());
-                        put("totalQty", book.getTotalQty());
-                        put("availableQty", book.getAvailableQty());
-                        put("imageUrl", book.getImageUrl());
-                        put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
-                        put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
-                        put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
-                    }
-                }};
-
-                logger.info("Admin successfully retrieved reservation {}", id);
-                return ResponseEntity.ok(result);
-            } catch (Exception e) {
-                logger.warn("Error fetching book details for reservation: {}", id, e);
-                // Return reservation without book details
-                return ResponseEntity.ok(reservation);
-            }
+            logger.info("Admin successfully retrieved reservation {}", id);
+            return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
             logger.warn("Reservation not found: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -314,53 +233,9 @@ public class ReservationController {
         try {
             logger.info("Admin fetching all reservations for management");
 
-            // Get all reservations from service
-            List<ReservationResponseDTO> reservations = 
-                reservationService.getAllReservations();
-
-            // Map to object combining Reservation + Book info
-            List<Object> result = reservations.stream()
-                .map(reservation -> {
-                    try {
-                        Book book = bookService.getBookById(reservation.getBookId());
-                        
-                        return new java.util.HashMap<String, Object>() {{
-                            put("id", reservation.getId());
-                            put("userId", reservation.getUserId());
-                            put("reservationDate", reservation.getReservationDate());
-                            put("status", reservation.getStatus());
-                            put("createdAt", reservation.getCreatedAt());
-                            put("updatedAt", reservation.getUpdatedAt());
-                            
-                            // Book details (null-safe)
-                            if (book != null) {
-                                put("bookId", book.getId());
-                                put("title", book.getTitle());
-                                put("isbn", book.getIsbn());
-                                put("publishedYear", book.getPublishedYear());
-                                put("totalQty", book.getTotalQty());
-                                put("availableQty", book.getAvailableQty());
-                                put("imageUrl", book.getImageUrl());
-                                put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
-                                put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
-                                put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
-                            }
-                        }};
-                    } catch (Exception e) {
-                        logger.warn("Error fetching book details for reservation: {}", reservation.getId(), e);
-                        // Return reservation without book details if error occurs
-                        return new java.util.HashMap<String, Object>() {{
-                            put("id", reservation.getId());
-                            put("userId", reservation.getUserId());
-                            put("reservationDate", reservation.getReservationDate());
-                            put("status", reservation.getStatus());
-                            put("createdAt", reservation.getCreatedAt());
-                            put("updatedAt", reservation.getUpdatedAt());
-                            put("bookId", reservation.getBookId());
-                        }};
-                    }
-                })
-                .collect(Collectors.toList());
+            // ✅ Call service to get all reservations with book details (logic moved to service)
+            List<java.util.Map<String, Object>> result =
+                reservationService.getAllReservationsWithBooksDetail();
 
             logger.info("Retrieved {} total reservations for admin management", result.size());
             return ResponseEntity.ok(result);

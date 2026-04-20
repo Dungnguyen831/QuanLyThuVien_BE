@@ -4,7 +4,6 @@ import com.library.server.dto.request.WishlistRequestDTO;
 import com.library.server.dto.response.WishlistResponseDTO;
 import com.library.server.entity.Book;
 import com.library.server.entity.User;
-import com.library.server.service.BookService;
 import com.library.server.service.WishlistService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +12,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/wishlists")
@@ -21,18 +19,15 @@ import java.util.stream.Collectors;
 public class WishlistController {
 
     private final WishlistService wishlistService;
-    private final BookService bookService;
 
-    public WishlistController(WishlistService wishlistService, BookService bookService) {
+    public WishlistController(WishlistService wishlistService) {
         this.wishlistService = wishlistService;
-        this.bookService = bookService;
     }
 
     /**
      * GET /api/v1/wishlists - Get authenticated user's wishlist with book details
      * ✅ FIXED: Extract userId from JWT token (authenticatedUser), not from request parameter
-     * ✅ FIXED: Added @PreAuthorize and @AuthenticationPrincipal
-     * ✅ FIXED: Map wishlist items to Book objects with full details
+     * ✅ FIXED: Logic moved to Service layer
      */
     @GetMapping
     public ResponseEntity<?> getMyWishlist(@AuthenticationPrincipal User authenticatedUser) {
@@ -40,12 +35,8 @@ public class WishlistController {
             Integer userId = authenticatedUser.getId();
             log.info("Fetching wishlist for authenticated user ID: {}", userId);
 
-            List<WishlistResponseDTO> wishlists = wishlistService.getUserWishlist(userId);
-
-            // Map to Book objects with full details
-            List<Book> books = wishlists.stream()
-                    .map(w -> bookService.getBookById(w.getBookId()))
-                    .collect(Collectors.toList());
+            // Call service to get wishlist with book details
+            List<Book> books = wishlistService.getMyWishlistWithBooksDetail(userId);
 
             log.info("Successfully retrieved {} items from wishlist for user ID: {}", books.size(), userId);
             return ResponseEntity.ok(books);
