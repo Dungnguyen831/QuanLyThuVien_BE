@@ -15,4 +15,5 @@ public class LoanResponseDTO {
     private String dueDate;
     private String returnDate;
     private String status;
+    private String note;
 }

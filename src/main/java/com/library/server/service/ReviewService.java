@@ -8,6 +8,8 @@ import com.library.server.entity.User;
 import com.library.server.repository.ReviewRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ReviewService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReviewService.class);
 
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
@@ -41,13 +45,27 @@ public class ReviewService {
                 .build();
     }
 
-    // Create a new review
-    public ReviewResponseDTO createReview(ReviewRequestDTO requestDTO) {
-        User user = userRepository.findById(requestDTO.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + requestDTO.getUserId()));
+    // ✅ FIXED: Create a new review with authenticated user ID
+    public ReviewResponseDTO createReview(Integer authenticatedUserId, ReviewRequestDTO requestDTO) {
+        // ✅ SECURITY: Use authenticated user ID, not from request body
+        if (authenticatedUserId == null || authenticatedUserId <= 0) {
+            logger.warn("Invalid authenticated user ID: {}", authenticatedUserId);
+            throw new IllegalArgumentException("User ID không hợp lệ");
+        }
+
+        logger.info("User {} creating review for bookId: {}", authenticatedUserId, requestDTO.getBookId());
+
+        User user = userRepository.findById(authenticatedUserId)
+                .orElseThrow(() -> {
+                    logger.warn("Authenticated user not found: {}", authenticatedUserId);
+                    return new RuntimeException("Không tìm thấy người dùng với ID: " + authenticatedUserId);
+                });
 
         Book book = bookRepository.findById(requestDTO.getBookId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + requestDTO.getBookId()));
+                .orElseThrow(() -> {
+                    logger.warn("Book not found: {}", requestDTO.getBookId());
+                    return new RuntimeException("Không tìm thấy sách với ID: " + requestDTO.getBookId());
+                });
 
         Review review = Review.builder()
                 .user(user)
@@ -57,53 +75,75 @@ public class ReviewService {
                 .build();
 
         Review savedReview = reviewRepository.save(review);
+        logger.info("Review created successfully for user {}: ID {}", authenticatedUserId, savedReview.getId());
         return mapToDTO(savedReview);
     }
 
-    // Get all reviews
-    public List<ReviewResponseDTO> getAllReviews() {
-        List<Review> reviews = reviewRepository.findAll();
-        return reviews.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
+    // ✅ REMOVED: getAllReviews() - FE doesn't use this endpoint
 
-    // Get review by ID
-    public ReviewResponseDTO getReviewById(Integer id) {
-        Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đánh giá với ID: " + id));
-        return mapToDTO(review);
-    }
+    // ✅ REMOVED: getReviewById(Integer id) - FE doesn't use this endpoint
 
-    // Update review
-    public ReviewResponseDTO updateReview(Integer id, ReviewRequestDTO requestDTO) {
-        Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đánh giá với ID: " + id));
+    // ✅ FIXED: Update review with ownership verification
+    public ReviewResponseDTO updateReview(Integer id, Integer authenticatedUserId, ReviewRequestDTO requestDTO) {
+        // ✅ SECURITY: Validate ID and user ID
+        if (id == null || id <= 0) {
+            logger.warn("Invalid review ID for update: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
 
-        User user = userRepository.findById(requestDTO.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + requestDTO.getUserId()));
+        if (authenticatedUserId == null || authenticatedUserId <= 0) {
+            logger.warn("Invalid authenticated user ID for update: {}", authenticatedUserId);
+            throw new IllegalArgumentException("User ID không hợp lệ");
+        }
+
+        logger.info("User {} updating review ID: {}", authenticatedUserId, id);
+
+        // ✅ CRITICAL: Use findByIdAndUserId to verify OWNERSHIP
+        Review review = reviewRepository.findByIdAndUserId(id, authenticatedUserId)
+                .orElseThrow(() -> {
+                    logger.warn("User {} attempted to update review {} that they don't own", authenticatedUserId, id);
+                    return new IllegalArgumentException("Đánh giá không tồn tại hoặc không phải của bạn");
+                });
 
         Book book = bookRepository.findById(requestDTO.getBookId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + requestDTO.getBookId()));
-
-        // Cập nhật thông tin review
-        review.setUser(user);
+                .orElseThrow(() -> {
+                    logger.warn("Book not found for update: {}", requestDTO.getBookId());
+                    return new IllegalArgumentException("Không tìm thấy sách");
+                });
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
-        // Thời gian updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
-        // Nhưng có thể set explicit nếu cần:
-        // review.setUpdatedAt(LocalDateTime.now());
 
         Review updatedReview = reviewRepository.save(review);
+        logger.info("User {} successfully updated review {}", authenticatedUserId, id);
         return mapToDTO(updatedReview);
     }
 
-    // Delete review
-    public void deleteReview(Integer id) {
-        Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đánh giá với ID: " + id));
+    // ✅ FIXED: Delete review with ownership verification
+    public void deleteReview(Integer id, Integer authenticatedUserId) {
+        // ✅ SECURITY: Validate ID and user ID
+        if (id == null || id <= 0) {
+            logger.warn("Invalid review ID for deletion: {}", id);
+            throw new IllegalArgumentException("ID không hợp lệ");
+        }
+
+        if (authenticatedUserId == null || authenticatedUserId <= 0) {
+            logger.warn("Invalid authenticated user ID for deletion: {}", authenticatedUserId);
+            throw new IllegalArgumentException("User ID không hợp lệ");
+        }
+
+        logger.info("User {} attempting to delete review ID: {}", authenticatedUserId, id);
+
+        // ✅ CRITICAL: Use findByIdAndUserId to verify OWNERSHIP before deletion
+        Review review = reviewRepository.findByIdAndUserId(id, authenticatedUserId)
+                .orElseThrow(() -> {
+                    logger.warn("User {} attempted to delete review {} that they don't own", authenticatedUserId, id);
+                    return new IllegalArgumentException("Đánh giá không tồn tại hoặc không phải của bạn");
+                });
+
+        logger.info("User {} deleting review: {}", authenticatedUserId, id);
         reviewRepository.delete(review);
+        logger.info("User {} successfully deleted review: {}", authenticatedUserId, id);
     }
 
     // Get reviews by book ID (Cách 2: Custom Query)

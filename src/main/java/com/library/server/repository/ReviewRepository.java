@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
@@ -17,5 +18,12 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
     // Alternative: Có thể sử dụng derived query (Spring tự generate SQL)
     // List<Review> findByBook_IdOrderByCreatedAtDesc(Integer bookId);
+
+    // ✅ NEW: Find review by ID AND user ID (ownership verification)
+    // Ensures: WHERE id = ? AND user_id = ?
+    // This prevents users from accessing/modifying other users' reviews
+    Optional<Review> findByIdAndUserId(Integer id, Integer userId);
 }
+
+
 
