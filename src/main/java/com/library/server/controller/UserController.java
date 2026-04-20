@@ -1,5 +1,6 @@
 package com.library.server.controller;
 
+import com.library.server.dto.request.ChangePasswordDTO;
 import com.library.server.dto.request.UserRequestDTO;
 import com.library.server.dto.response.UserResponseDTO;
 import com.library.server.service.UserService;
@@ -62,6 +63,7 @@ public class UserController {
         }
     }
 
+
     // 4. Cập nhật thông tin độc giả
     // PUT /api/v1/users/{id}
     @PutMapping("/{id}")
@@ -75,6 +77,8 @@ public class UserController {
             return ResponseEntity.badRequest().body(err);
         }
     }
+
+
 
     // 5. Khóa/Mở khóa độc giả
     // PATCH /api/v1/users/{id}/status?status=INACTIVE
@@ -100,6 +104,29 @@ public class UserController {
             userService.deleteUser(id);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    // 7. Đổi mật khẩu (Cần kiểm tra mật khẩu cũ)
+    // PATCH /api/v1/users/{id}/password
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<?> changePassword(
+            @PathVariable Integer id,
+            @RequestBody ChangePasswordDTO requestDTO) { // Sinh ra 1 cái DTO mới chỉ chứa 2 trường: oldPassword, newPassword
+        try {
+            // Gọi Service xuống kiểm tra và cập nhật
+            userService.changePassword(id, requestDTO);
+
+            // Trả về thông báo thành công cho Frontend
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Đổi mật khẩu thành công!");
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            // Nếu Service ném lỗi (Ví dụ: "Mật khẩu cũ không đúng"), trả về lỗi 400
             Map<String, String> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(err);
