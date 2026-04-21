@@ -71,7 +71,6 @@ public class ReviewService {
         Review review = Review.builder()
                 .user(user)
                 .book(book)
-
                 .rating(requestDTO.getRating())
                 .comment(requestDTO.getComment())
                 .build();

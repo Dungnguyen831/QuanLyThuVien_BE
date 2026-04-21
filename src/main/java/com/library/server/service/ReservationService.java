@@ -8,6 +8,8 @@ import com.library.server.entity.User;
 import com.library.server.repository.ReservationRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,28 +18,42 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
+@RequiredArgsConstructor
 public class ReservationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final BookService bookService;
 
-    public ReservationService(ReservationRepository reservationRepository,
-                              UserRepository userRepository,
-                              BookRepository bookRepository) {
-        this.reservationRepository = reservationRepository;
-        this.userRepository = userRepository;
-        this.bookRepository = bookRepository;
-    }
 
     // Helper method: Convert Reservation Entity to ReservationResponseDTO
     private ReservationResponseDTO mapToDTO(Reservation reservation) {
+        // Xử lý an toàn null cho Tên và Email
+        String finalUserName = "Không xác định";
+        String finalUserEmail = "";
+        if (reservation.getUser() != null) {
+            finalUserName = reservation.getUser().getFullName();
+            finalUserEmail = reservation.getUser().getEmail();
+        }
+
+        // Xử lý an toàn null cho Tên sách
+        String finalBookName = "Sách không tồn tại / Đã xóa";
+        if (reservation.getBook() != null) {
+            finalBookName = reservation.getBook().getTitle(); // Lấy title gắn vào bookName
+        }
+
+        // Trả về đúng DTO gọn gàng của bạn
         return ReservationResponseDTO.builder()
                 .id(reservation.getId())
                 .userId(reservation.getUser() != null ? reservation.getUser().getId() : null)
                 .bookId(reservation.getBook() != null ? reservation.getBook().getId() : null)
+                .userName(finalUserName)
+                .userEmail(finalUserEmail)
+                .bookName(finalBookName)
                 .reservationDate(reservation.getReservationDate())
                 .status(reservation.getStatus())
                 .createdAt(reservation.getCreatedAt())
@@ -271,7 +287,7 @@ public class ReservationService {
 
         // Get all reservations from database
         List<Reservation> allReservations = reservationRepository.findAll();
-        
+
         logger.debug("Found {} total reservations in system", allReservations.size());
 
         // Handle case when no reservations found
@@ -284,6 +300,32 @@ public class ReservationService {
         return allReservations.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    public void updateStatus(Integer id, String newStatus) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu đặt với ID: " + id));
+
+        String oldStatus = reservation.getStatus();
+
+        if ("pending".equalsIgnoreCase(oldStatus) && "approved".equalsIgnoreCase(newStatus)) {
+            Book book = reservation.getBook();
+            if (book.getAvailableQty() <= 0) {
+                throw new RuntimeException("Sách này hiện đã hết trong kho, không thể duyệt!");
+            }
+            book.setAvailableQty(book.getAvailableQty() - 1);
+            bookRepository.save(book);
+        }
+
+        else if ("approved".equalsIgnoreCase(oldStatus) && "cancelled".equalsIgnoreCase(newStatus)) {
+            Book book = reservation.getBook();
+            book.setAvailableQty(book.getAvailableQty() + 1);
+            bookRepository.save(book);
+        }
+
+        reservation.setStatus(newStatus);
+        reservationRepository.save(reservation);
+        logger.info("Admin đã cập nhật trạng thái phiếu {} thành {}", id, newStatus);
     }
 
     /**
@@ -361,3 +403,4 @@ public class ReservationService {
         }};
     }
 }
+

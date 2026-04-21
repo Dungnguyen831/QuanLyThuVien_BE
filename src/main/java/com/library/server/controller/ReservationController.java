@@ -134,7 +134,6 @@ public class ReservationController {
             logger.debug("Update request - bookId: {}, status: {}, date: {}",
                 requestDTO.getBookId(), requestDTO.getStatus(), requestDTO.getReservationDate());
 
-            // ✅ SECURITY: Pass authenticatedUser.getId() for ownership verification
             ReservationResponseDTO reservation = reservationService.updateReservation(id, authenticatedUser.getId(), requestDTO);
 
             logger.info("Successfully updated reservation {} for user {}", id, authenticatedUser.getId());
@@ -160,7 +159,7 @@ public class ReservationController {
      * Only accessible to ADMIN users
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<?> getReservationForAdmin(
             @PathVariable Integer id) {
         try {
@@ -228,25 +227,15 @@ public class ReservationController {
      * Only accessible to ADMIN users
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllReservations() {
-        try {
-            logger.info("Admin fetching all reservations for management");
+    public ResponseEntity<List<ReservationResponseDTO>> getAllReservations() {
+        logger.info("Admin fetching all reservations (Simplified DTO)");
 
-            // ✅ Call service to get all reservations with book details (logic moved to service)
-            List<java.util.Map<String, Object>> result =
-                reservationService.getAllReservationsWithBooksDetail();
+        // Gọi thẳng Service, Service đã trả về List<ReservationResponseDTO> hoàn hảo rồi
+        List<ReservationResponseDTO> reservations = reservationService.getAllReservations();
 
-            logger.info("Retrieved {} total reservations for admin management", result.size());
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Error retrieving all reservations for admin", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                new ErrorResponseBody("Lỗi máy chủ. Vui lòng thử lại sau.", 500)
-            );
-        }
+        return ResponseEntity.ok(reservations);
     }
-    
+
     /**
      * Inner class for error response
      */
@@ -259,6 +248,32 @@ public class ReservationController {
             this.code = code;
             this.message = message;
             this.timestamp = LocalDateTime.now();
+        }
+    }
+
+    // PATCH /api/v1/reservations/{id}/status - Update status only (For Admin)
+    @PatchMapping("/{id}/status")
+//    @PreAuthorize("hasRole('admin')")
+    public ResponseEntity<?> updateStatusByAdmin(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            String newStatus = body.get("status");
+            if (newStatus == null || newStatus.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponseBody("Thiếu trạng thái", 400));
+            }
+
+            reservationService.updateStatus(id, newStatus);
+
+            // Trả về JSON báo thành công
+            return ResponseEntity.ok(new java.util.HashMap<String, String>() {{
+                put("message", "Cập nhật trạng thái thành công");
+                put("status", newStatus);
+            }});
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseBody(e.getMessage(), 404));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseBody("Lỗi máy chủ", 500));
         }
     }
 }
