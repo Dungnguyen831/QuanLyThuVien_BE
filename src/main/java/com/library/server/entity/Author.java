@@ -20,16 +20,6 @@ public class Author extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String biography;
-
-    @Column(nullable = false)
-    private String country;
-
-    @Column( nullable = true)
-    private Integer bookcount;
-
-    @Column(nullable = false)
-    private String status;
-
     // 2. Thêm cái "cầu nối" này vào bên trong class Author
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     private List<Book> books;

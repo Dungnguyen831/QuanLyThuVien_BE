@@ -110,7 +110,6 @@ public class ReviewService {
                     logger.warn("Book not found for update: {}", requestDTO.getBookId());
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
-
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
