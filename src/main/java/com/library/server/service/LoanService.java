@@ -33,7 +33,6 @@ public class LoanService {
 
     private static final String[] AVATAR_COLORS = {"#FF5733", "#33FF57", "#3357FF", "#F033FF", "#33FFF0"};
 
-    // Format ngày giờ cho đẹp trước khi gửi sang PHP
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public List<LoanResponseDTO> getAllLoansForDashboard() {
@@ -69,7 +68,7 @@ public class LoanService {
         }).collect(Collectors.toList());
     }
 
-    @Transactional // Đảm bảo nếu lỗi giữa chừng thì sẽ rollback (hủy) toàn bộ
+    @Transactional
     public void createNewLoan(LoanRequestDTO request) {
 
         Integer parsedUserId = Integer.parseInt(request.getUserId());
@@ -265,13 +264,9 @@ public class LoanService {
         }
         bookCopyRepository.save(copy);
 
-        // ==========================================
-        // 4. KIỂM TRA VÀ TỰ ĐỘNG TẠO PHẠT
-        // ==========================================
         List<String> fineMessages = new ArrayList<>();
         boolean hasFine = false;
 
-        // --- A. Phạt trễ hạn ---
         if (LocalDateTime.now().isAfter(detail.getDueDate())) {
             long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(
                     detail.getDueDate().toLocalDate(),
@@ -292,7 +287,6 @@ public class LoanService {
             }
         }
 
-        // --- B. Phạt theo tình trạng (Hư hỏng / Mất) ---
         if (condition.equals("DAMAGED")) {
             Fine fineDamage = new Fine();
             fineDamage.setUser(detail.getLoan().getUser());
@@ -322,10 +316,8 @@ public class LoanService {
             fineMessages.add("Mất sách (200.000đ)");
         }
 
-        // Lưu trạng thái hoàn tất
         loanDetailRepository.save(detail);
 
-        // 5. Trả về thông báo động cho Frontend
         if (!hasFine) {
             return "Xác nhận trả sách thành công! Sách nguyên vẹn và đúng hạn.";
         } else {
@@ -351,18 +343,17 @@ public class LoanService {
             throw new RuntimeException("Độc giả đang có khoản phạt chưa thanh toán. Yêu cầu đóng phạt trước khi nhận sách!");
         }
 
-        // 3. Tìm 1 bản sao của sách đang rảnh và trừ số lượng (Tái sử dụng logic cũ)
-        List<BookCopy> availableCopies = bookCopyRepository.findByBookId(reservation.getBook().getId());
+        List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(
+                reservation.getBook().getId(),
+                "AVAILABLE"
+        );
+
         if (availableCopies.isEmpty()) {
             throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho để giao!");
         }
         BookCopy copyToBorrow = availableCopies.get(0);
         copyToBorrow.setAvailabilityStatus("BORROWED");
         bookCopyRepository.save(copyToBorrow);
-
-        Book book = copyToBorrow.getBook();
-        book.setAvailableQty(book.getAvailableQty() - 1);
-        bookRepository.save(book);
 
         // 4. Tạo hóa đơn mượn (Bảng loans)
         Loan loan = new Loan();
