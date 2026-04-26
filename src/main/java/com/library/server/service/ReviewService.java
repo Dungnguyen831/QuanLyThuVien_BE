@@ -112,11 +112,9 @@ public class ReviewService {
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
 
-        // Update review data (keep existing user, update book/rating/comment)
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
-        // ✅ updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
 
         Review updatedReview = reviewRepository.save(review);
         logger.info("User {} successfully updated review {}", authenticatedUserId, id);
@@ -145,7 +143,6 @@ public class ReviewService {
                     return new IllegalArgumentException("Đánh giá không tồn tại hoặc không phải của bạn");
                 });
 
-        logger.info("User {} deleting review: {}", authenticatedUserId, id);
         reviewRepository.delete(review);
         logger.info("User {} successfully deleted review: {}", authenticatedUserId, id);
     }
