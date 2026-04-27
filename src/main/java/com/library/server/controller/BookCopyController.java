@@ -1,5 +1,6 @@
 package com.library.server.controller;
 
+import com.library.server.dto.request.BookCopyRequestDTO;
 import com.library.server.entity.BookCopy;
 import com.library.server.service.BookCopyService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +43,7 @@ public class BookCopyController {
     }
     // Cập nhật bản sao: PUT http://localhost:8080/api/v1/book-copies/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<BookCopy> update(@PathVariable Integer id, @RequestBody BookCopy copy) {
+    public ResponseEntity<BookCopy> update(@PathVariable Integer id, @RequestBody BookCopyRequestDTO copy) {
         return ResponseEntity.ok(bookCopyService.updateCopy(id, copy));
     }
     @GetMapping("/book/{bookId}")
