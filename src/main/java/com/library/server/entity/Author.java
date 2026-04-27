@@ -20,13 +20,11 @@ public class Author extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String biography;
-    // 2. Thêm cái "cầu nối" này vào bên trong class Author
+
+
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     private List<Book> books;
 
-    // 3. Quan trọng nhất: Thêm Getter để Service có thể gọi được
-    public List<Book> getBooks() {
-        return this.books;
-    }
+    // ✅ Calculated field - không lưu vào DB, tính từ books.size()
 
 }

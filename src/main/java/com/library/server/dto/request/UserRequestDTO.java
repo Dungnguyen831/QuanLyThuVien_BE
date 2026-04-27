@@ -9,6 +9,4 @@ public class UserRequestDTO {
     private String phone;
     private String password; // Dùng khi tạo mới (nếu cần) hoặc khi muốn đổi mật khẩu
     private String roleName; // Tên quyền, vd: "user", "admin"
-
-    private String msv;
 }

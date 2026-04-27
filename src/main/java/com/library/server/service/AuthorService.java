@@ -26,12 +26,17 @@ public class AuthorService {
         Author author = new Author();
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
+
+        // Kiểm tra nếu null thì gán bằng 0, không để Hibernate nhìn thấy chữ Null
+
+
         return convertToResponeDTO(authorRepository.save(author));
     }
     public AuthorResponseDTO updateAuthor(Integer id, AuthorRequestDTO requestDTO){
         Author author = authorRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy tác giả: " + id));
         author.setName(requestDTO.getName());
         author.setBiography(requestDTO.getBiography());
+
         return convertToResponeDTO(authorRepository.save(author));
     }
     public void deleteAuthor(Integer id) {

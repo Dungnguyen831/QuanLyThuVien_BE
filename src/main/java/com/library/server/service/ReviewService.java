@@ -37,6 +37,7 @@ public class ReviewService {
         return ReviewResponseDTO.builder()
                 .id(review.getId())
                 .userId(review.getUser() != null ? review.getUser().getId() : null)
+                .fullName(review.getUser() != null ? review.getUser().getFullName() : null)  // ✅ NEW: Get fullName from User
                 .bookId(review.getBook() != null ? review.getBook().getId() : null)
                 .rating(review.getRating())
                 .comment(review.getComment())
@@ -110,9 +111,12 @@ public class ReviewService {
                     logger.warn("Book not found for update: {}", requestDTO.getBookId());
                     return new IllegalArgumentException("Không tìm thấy sách");
                 });
+
+        // Update review data (keep existing user, update book/rating/comment)
         review.setBook(book);
         review.setRating(requestDTO.getRating());
         review.setComment(requestDTO.getComment());
+        // ✅ updatedAt sẽ tự động cập nhật bởi @LastModifiedDate từ Auditing
 
         Review updatedReview = reviewRepository.save(review);
         logger.info("User {} successfully updated review {}", authenticatedUserId, id);

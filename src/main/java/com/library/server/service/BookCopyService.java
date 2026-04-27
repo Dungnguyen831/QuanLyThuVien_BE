@@ -44,7 +44,7 @@ public class BookCopyService {
             newCopy.setBook(book);
             newCopy.setConditionStatus(template.getConditionStatus());
             newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
-            newCopy.setBarcode("BC" + System.currentTimeMillis() + i);
+            newCopy.setBarcode("BC" +  System.currentTimeMillis() + i);
             copies.add(bookCopyRepository.save(newCopy));
         }
 
