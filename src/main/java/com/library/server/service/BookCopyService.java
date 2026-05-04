@@ -38,13 +38,27 @@ public class BookCopyService {
         Book book = bookRepository.findById(template.getBook().getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + template.getBook().getId()));
 
+        // Chuẩn bị các phần cố định của Barcode
+        String bookPart = normalizeToInitials(book.getTitle());
+        String categoryPart = (book.getCategory() != null)
+                ? normalizeToInitials(book.getCategory().getName())
+                : "TL";
+        String yearPart = (book.getPublishedYear() != null)
+                ? book.getPublishedYear().toString()
+                : "00";
+
         List<BookCopy> copies = new ArrayList<>();
         for (int i = 0; i < quantity; i++) {
             BookCopy newCopy = new BookCopy();
             newCopy.setBook(book);
             newCopy.setConditionStatus(template.getConditionStatus());
             newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
-            newCopy.setBarcode("BC" + System.currentTimeMillis() + i);
+
+            // Tạo Barcode theo format: SHD-GD-2024-1
+            // Dùng System.currentTimeMillis() nếu bạn muốn đảm bảo không bao giờ trùng trên toàn hệ thống
+            String customBarcode = String.format("%s%s%s%d", bookPart, categoryPart, yearPart, (i + 1));
+            newCopy.setBarcode(customBarcode);
+
             copies.add(bookCopyRepository.save(newCopy));
         }
 
@@ -102,4 +116,26 @@ public class BookCopyService {
     public List<BookCopy> getCopiesByBookId(Integer bookId) {
         return bookCopyRepository.findByBookId(bookId);
     }
+    private String normalizeToInitials(String input) {
+        if (input == null || input.trim().isEmpty()) return "X";
+
+        // Tách chuỗi thành các từ
+        String[] words = input.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                initials.append(word.charAt(0)); // Lấy chữ cái đầu
+            }
+        }
+
+        // Khử dấu tiếng Việt và viết hoa
+        String result = java.text.Normalizer.normalize(initials.toString(), java.text.Normalizer.Form.NFD);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+
+        return pattern.matcher(result).replaceAll("")
+                .replaceAll("[^a-zA-Z0-9]", "")
+                .toUpperCase();
+    }
+
 }
