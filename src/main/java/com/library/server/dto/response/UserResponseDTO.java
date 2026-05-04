@@ -16,6 +16,6 @@ public class UserResponseDTO {
     private String phone;
     private String status;
     private String roleName;
-    private String msv;
+
     // Tuyệt đối KHÔNG khai báo biến password ở đây!
 }

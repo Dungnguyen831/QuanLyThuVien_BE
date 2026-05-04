@@ -1,7 +1,6 @@
 package com.library.server.controller;
 
 import com.library.server.dto.request.ChangePasswordDTO;
-import com.library.server.dto.request.UpdateMsvRequestDTO;
 import com.library.server.dto.request.UserRequestDTO;
 import com.library.server.dto.response.UserResponseDTO;
 import com.library.server.service.UserService;
@@ -133,22 +132,4 @@ public class UserController {
             return ResponseEntity.badRequest().body(err);
         }
     }
-//     8. Cập nhật Mã sinh viên (Dành riêng cho Thủ thư lúc quét thẻ sinh viên)
-//     PATCH /api/v1/users/{id}/msv
-@PatchMapping("/{id}/msv")
-public ResponseEntity<?> updateMsv(
-        @PathVariable Integer id,
-        @RequestBody UpdateMsvRequestDTO request) { // ĐỔI MAP THÀNH DTO NÀY
-    try {
-        String newMsv = request.getMsv(); // Sửa lại cách lấy dữ liệu
-        String result = userService.updateMsv(id, newMsv);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", result);
-        return ResponseEntity.ok(response);
-    } catch (RuntimeException e) {
-        Map<String, String> err = new HashMap<>();
-        err.put("error", e.getMessage());
-        return ResponseEntity.badRequest().body(err);
-    }
-}
 }

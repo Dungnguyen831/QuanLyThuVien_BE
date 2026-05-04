@@ -36,9 +36,6 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "status") // Trong DB mới, status đang là varchar(255)
     private String status;
 
-    @Column(name = "msv", length = 50)
-    private String msv;
-
     // --- CÁC HÀM CỦA USERDETAILS CẦN THIẾT CHO SPRING SECURITY ---
 
     @Override

@@ -60,8 +60,6 @@ public class SecurityConfig {
                                 "/api/v1/loans",
                                 "/api/v1/fines",
                                 "/api/v1/fines/**",
-                                "/api/v1/books",
-                                "/api/v1/books/**",
                                 "/error"
                         ).permitAll()
                         .anyRequest().authenticated()

@@ -14,8 +14,6 @@ public class UserDTO {
     private String email;
     private String fullName;
     private String phone;
-    private String role;
-    // Chỉ lấy tên Role (VD: "ADMIN", "USER") trả về cho Frontend
+    private String role; // Chỉ lấy tên Role (VD: "ADMIN", "USER") trả về cho Frontend
     private String status;
-    private String msv;
 }

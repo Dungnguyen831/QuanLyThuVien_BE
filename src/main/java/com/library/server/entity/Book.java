@@ -3,7 +3,8 @@ package com.library.server.entity;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
 
 @Entity
@@ -40,6 +41,17 @@ public class Book extends BaseEntity {
     @JsonGetter("author_id")
     public Integer getAuthorIdId() { return author != null ? author.getId() : null; }
 
+    @JsonGetter("category_name")
+    public String getCategoryName() {
+        return category != null ? category.getName() : null;
+    }
+
     @JsonGetter("publisher_id")
     public Integer getPublisherIdId() { return publisher != null ? publisher.getId() : null; }
+
+    @JsonGetter("author_name")
+    public String getAuthorName() {
+        return author != null ? author.getName() : null;
+    }
+
 }
