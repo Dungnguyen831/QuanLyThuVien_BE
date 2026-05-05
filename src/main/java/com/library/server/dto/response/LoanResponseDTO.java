@@ -11,6 +11,7 @@ public class LoanResponseDTO {
     private String userName;        // Tên Nguyễn Văn A
     private String userAvatarColor; // Màu ngẫu nhiên
     private String bookName;        // Tên sách
+    private String bookCopyBarcode; // Mã vạch bản sao
     private String borrowDate;
     private String dueDate;
     private String returnDate;
