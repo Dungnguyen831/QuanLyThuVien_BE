@@ -13,4 +13,5 @@ import java.util.List;
 public interface LoanRepository extends JpaRepository<Loan, Integer> {
     // Tạm thời chỉ cần lấy tất cả (findAll) là đủ xài
     List<Loan> findByUserId(Integer userId);
+
 }

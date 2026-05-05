@@ -1,8 +1,6 @@
 package com.library.server.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,4 +16,8 @@ public class Shelf extends BaseEntity {
     private Integer floor; // Số tầng (ví dụ: tầng 1, tầng 2)
 
     // id, createdAt, updatedAt đã được kế thừa từ BaseEntity
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
 }
