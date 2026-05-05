@@ -39,3 +39,4 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
      */
     long countByUserIdAndStatusIn(Integer userId, List<String> statuses);
 }
+

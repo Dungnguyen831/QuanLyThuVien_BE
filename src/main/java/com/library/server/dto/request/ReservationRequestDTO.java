@@ -22,9 +22,7 @@ public class ReservationRequestDTO {
     @Positive(message = "Book ID phải > 0")
     private Integer bookId;
     
-    @NotNull(message = "Reservation date không được null")
-    // ✅ FIXED: Relax validation - cho phép sửa dates đã qua (cho CREATE & UPDATE)
-    // @FutureOrPresent quá strict - người dùng cần sửa lại dates cũ trong UPDATE
+    // Reservation date do BE set khi duyệt, không lấy từ client
     private LocalDateTime reservationDate;
     
     @NotBlank(message = "Status không được trống")
@@ -32,7 +30,5 @@ public class ReservationRequestDTO {
         regexp = "^(PENDING|APPROVED|CANCELLED|COMPLETED)$",
         message = "Status phải là PENDING, APPROVED, CANCELLED, hoặc COMPLETED"
     )
-    @Size(max = 50, message = "Status không được vượt quá 50 ký tự")
     private String status;
 }
-

@@ -5,15 +5,26 @@ import com.library.server.dto.response.ReservationResponseDTO;
 import com.library.server.entity.Reservation;
 import com.library.server.entity.Book;
 import com.library.server.entity.User;
+import com.library.server.entity.Loan;
+import com.library.server.entity.LoanDetail;
+import com.library.server.entity.BookCopy;
 import com.library.server.repository.ReservationRepository;
 import com.library.server.repository.BookRepository;
 import com.library.server.repository.UserRepository;
 import com.library.server.repository.LoanDetailRepository;
+import com.library.server.repository.LoanRepository;
+import com.library.server.repository.BookCopyRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +37,8 @@ public class ReservationService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final LoanDetailRepository loanDetailRepository;
+    private final LoanRepository loanRepository;
+    private final BookCopyRepository bookCopyRepository;
 
 
     // Helper method: Convert Reservation Entity to ReservationResponseDTO
@@ -49,6 +62,7 @@ public class ReservationService {
                 .id(reservation.getId())
                 .userId(reservation.getUser() != null ? reservation.getUser().getId() : null)
                 .bookId(reservation.getBook() != null ? reservation.getBook().getId() : null)
+                .bookCopyBarcode(reservation.getBookCopy() != null ? reservation.getBookCopy().getBarcode() : null)
                 .userName(finalUserName)
                 .userEmail(finalUserEmail)
                 .bookName(finalBookName)
@@ -60,6 +74,7 @@ public class ReservationService {
     }
 
     // Create a new reservation
+    @Transactional
     public ReservationResponseDTO createReservation(Integer authenticatedUserId, ReservationRequestDTO requestDTO) {
         if (authenticatedUserId == null || authenticatedUserId <= 0) {
             throw new IllegalArgumentException("User ID không hợp lệ");
@@ -75,21 +90,32 @@ public class ReservationService {
             throw new IllegalStateException("Bạn đã đặt sách này rồi. Vui lòng chờ xử lý.");
         }
 
-        List<String> activeStatuses = List.of("pending", "approved");
-        long activeReservationCount = reservationRepository.countByUserIdAndStatusIn(authenticatedUserId, activeStatuses);
-        if (activeReservationCount >= 3) {
-            throw new IllegalStateException("Bạn đã đạt giới hạn 3 đặt chỗ đang hoạt động.");
+        long pendingReservations = reservationRepository.countByUserIdAndStatusIn(
+                authenticatedUserId,
+                List.of("pending")
+        );
+        long borrowingLoans = countBorrowingLoans(authenticatedUserId);
+        if (pendingReservations + borrowingLoans >= 5) {
+            throw new IllegalStateException("Bạn chỉ được tối đa 5 sách đang mượn/đang chờ duyệt.");
         }
 
-        if (book.getAvailableQty() == null || book.getAvailableQty() <= 0) {
-            throw new IllegalStateException("Sách hiện không còn trong kho.");
+        BookCopy assignedCopy = null;
+        List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "AVAILABLE");
+        if (availableCopies.isEmpty()) {
+            availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "available");
+        }
+        if (!availableCopies.isEmpty()) {
+            assignedCopy = availableCopies.get(0);
+            assignedCopy.setAvailabilityStatus("RESERVED");
+            bookCopyRepository.save(assignedCopy);
         }
 
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .book(book)
-                .reservationDate(requestDTO.getReservationDate())
-                .status(requestDTO.getStatus())
+                .bookCopy(assignedCopy)
+                .reservationDate(null)
+                .status("pending")
                 .build();
 
         Reservation savedReservation = reservationRepository.save(reservation);
@@ -137,7 +163,7 @@ public class ReservationService {
 
         reservation.setUser(user);
         reservation.setBook(book);
-        reservation.setReservationDate(requestDTO.getReservationDate());
+        // reservationDate is set by backend logic on approval
         reservation.setStatus(requestDTO.getStatus());
 
         Reservation updatedReservation = reservationRepository.save(reservation);
@@ -262,15 +288,55 @@ public class ReservationService {
             }
 
             Book book = reservation.getBook();
-            if (book.getAvailableQty() <= 0) {
+            BookCopy copyToBorrow = reservation.getBookCopy();
+
+            if (copyToBorrow == null) {
+                List<BookCopy> reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "RESERVED");
+                if (reservedCopies.isEmpty()) {
+                    reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "reserved");
+                }
+
+                if (!reservedCopies.isEmpty()) {
+                    copyToBorrow = reservedCopies.get(0);
+                } else {
+                    List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "AVAILABLE");
+                    if (availableCopies.isEmpty()) {
+                        availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "available");
+                    }
+                    if (!availableCopies.isEmpty()) {
+                        copyToBorrow = availableCopies.get(0);
+                    }
+                }
+            }
+
+            if (copyToBorrow == null) {
                 throw new RuntimeException("Sách này hiện đã hết trong kho, không thể duyệt!");
             }
+
+            copyToBorrow.setAvailabilityStatus("BORROWED");
+            bookCopyRepository.save(copyToBorrow);
+            reservation.setBookCopy(copyToBorrow);
+
             book.setAvailableQty(book.getAvailableQty() - 1);
             bookRepository.save(book);
+
+            ZoneId zoneId = ZoneId.systemDefault();
+            ZonedDateTime now = ZonedDateTime.now(zoneId);
+            LocalDate dateToUse = now.toLocalDate();
+            if (!now.toLocalTime().isBefore(LocalTime.of(15, 0))) {
+                dateToUse = dateToUse.plusDays(1);
+            }
+            reservation.setReservationDate(LocalDateTime.of(dateToUse, LocalTime.MIDNIGHT));
         } else if ("approved".equalsIgnoreCase(oldStatus) && "cancelled".equalsIgnoreCase(newStatus)) {
             Book book = reservation.getBook();
             book.setAvailableQty(book.getAvailableQty() + 1);
             bookRepository.save(book);
+
+            BookCopy copyToRelease = reservation.getBookCopy();
+            if (copyToRelease != null) {
+                copyToRelease.setAvailabilityStatus("AVAILABLE");
+                bookCopyRepository.save(copyToRelease);
+            }
         }
 
         reservation.setStatus(newStatus);
@@ -334,6 +400,7 @@ public class ReservationService {
             put("status", reservation.getStatus());
             put("createdAt", reservation.getCreatedAt());
             put("updatedAt", reservation.getUpdatedAt());
+            put("bookCopyBarcode", reservation.getBookCopyBarcode());
 
             // Book details (null-safe)
             if (book != null) {
@@ -350,4 +417,24 @@ public class ReservationService {
             }
         }};
     }
+
+    private long countBorrowingLoans(Integer userId) {
+        List<Loan> loans = loanRepository.findByUserId(userId);
+        if (loans.isEmpty()) {
+            return 0;
+        }
+
+        long borrowingCount = 0;
+        for (Loan loan : loans) {
+            List<LoanDetail> details = loanDetailRepository.findByLoanId(loan.getId());
+            for (LoanDetail detail : details) {
+                if (detail.getStatus() != null && "borrowing".equalsIgnoreCase(detail.getStatus())) {
+                    borrowingCount++;
+                }
+            }
+        }
+
+        return borrowingCount;
+    }
 }
+
