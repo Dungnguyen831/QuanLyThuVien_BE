@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -20,7 +21,7 @@ public class ReservationResponseDTO {
     private String userEmail;    // Email sinh viên
     private String bookName;     // Tên sách
 
-    private LocalDateTime reservationDate;
+    private LocalDate reservationDate;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

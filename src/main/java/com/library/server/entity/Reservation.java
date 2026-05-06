@@ -3,6 +3,7 @@ package com.library.server.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,7 +23,7 @@ public class Reservation extends BaseEntity {
     private Book book;
 
     @Column(name = "reservation_date")
-    private LocalDateTime reservationDate;
+    private LocalDate reservationDate;
 
     @Column(name = "status", length = 50)
     private String status;

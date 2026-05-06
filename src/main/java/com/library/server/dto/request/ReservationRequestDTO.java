@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -25,7 +26,7 @@ public class ReservationRequestDTO {
     @NotNull(message = "Reservation date không được null")
     // ✅ FIXED: Relax validation - cho phép sửa dates đã qua (cho CREATE & UPDATE)
     // @FutureOrPresent quá strict - người dùng cần sửa lại dates cũ trong UPDATE
-    private LocalDateTime reservationDate;
+    private LocalDate reservationDate;
     
     @NotBlank(message = "Status không được trống")
     @Pattern(
