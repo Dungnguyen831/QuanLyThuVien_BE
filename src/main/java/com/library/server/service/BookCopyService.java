@@ -56,8 +56,7 @@ public class BookCopyService {
 
             // Tạo Barcode theo format: SHD-GD-2024-1
             // Dùng System.currentTimeMillis() nếu bạn muốn đảm bảo không bao giờ trùng trên toàn hệ thống
-            String customBarcode = String.format("%s%s%s%d", bookPart, categoryPart, yearPart, (i + 1));
-            newCopy.setBarcode(customBarcode);
+            String customBarcode = String.format("%s%s%s%d%d", bookPart, categoryPart, yearPart, (i + 1), System.currentTimeMillis());            newCopy.setBarcode(customBarcode);
 
             copies.add(bookCopyRepository.save(newCopy));
         }
