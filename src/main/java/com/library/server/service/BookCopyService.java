@@ -35,17 +35,14 @@ public class BookCopyService {
 
     @Transactional // Quan trọng: Đảm bảo tính nhất quán dữ liệu
     public List<BookCopy> createMultipleCopiesManual(BookCopy template, int quantity) {
+        // 1. Kiểm tra sách tồn tại
         Book book = bookRepository.findById(template.getBook().getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + template.getBook().getId()));
 
-        // Chuẩn bị các phần cố định của Barcode
+        // 2. Chuẩn bị phần tiền tố Barcode
         String bookPart = normalizeToInitials(book.getTitle());
-        String categoryPart = (book.getCategory() != null)
-                ? normalizeToInitials(book.getCategory().getName())
-                : "TL";
-        String yearPart = (book.getPublishedYear() != null)
-                ? book.getPublishedYear().toString()
-                : "00";
+        String categoryPart = (book.getCategory() != null) ? normalizeToInitials(book.getCategory().getName()) : "TL";
+        String yearPart = (book.getPublishedYear() != null) ? book.getPublishedYear().toString() : "00";
 
         List<BookCopy> copies = new ArrayList<>();
         for (int i = 0; i < quantity; i++) {
@@ -54,20 +51,29 @@ public class BookCopyService {
             newCopy.setConditionStatus(template.getConditionStatus());
             newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
 
-            // Tạo Barcode theo format: SHD-GD-2024-1
-            // Dùng System.currentTimeMillis() nếu bạn muốn đảm bảo không bao giờ trùng trên toàn hệ thống
-            String customBarcode = String.format("%s%s%s%d%d", bookPart, categoryPart, yearPart, (i + 1), System.currentTimeMillis());            newCopy.setBarcode(customBarcode);
+            // LƯU LẦN 1: Để lấy ID từ Database
+            newCopy = bookCopyRepository.save(newCopy);
 
+            // TẠO BARCODE: Kết hợp tiền tố + ID vừa sinh ra
+            // Ví dụ: SHDGD2024-75 (75 là ID của bản sao trong DB)
+            String customBarcode = String.format("%s%s%s-%d", bookPart, categoryPart, yearPart, newCopy.getId());
+            newCopy.setBarcode(customBarcode);
+
+            // LƯU LẦN 2: Cập nhật lại barcode chính thức
             copies.add(bookCopyRepository.save(newCopy));
         }
 
-        // Tự động cộng dồn số lượng vào Book
-        int newTotal = (book.getTotalQty() == null ? 0 : book.getTotalQty()) + quantity;
-        book.setTotalQty(newTotal);
-        int newavailable = (book.getAvailableQty() == null ? 0 : book.getAvailableQty()) + quantity;
-        book.setAvailableQty(newavailable);
+        // 3. Cập nhật số lượng vào bảng Books
+        int currentTotal = (book.getTotalQty() == null ? 0 : book.getTotalQty());
+        book.setTotalQty(currentTotal + quantity);
 
-        bookRepository.save(book); // Lưu thay đổi vào bảng books
+        // CHỈ CỘNG vào available_qty nếu trạng thái bản sao là AVAILABLE
+        if ("AVAILABLE".equalsIgnoreCase(template.getAvailabilityStatus())) {
+            int currentAvailable = (book.getAvailableQty() == null ? 0 : book.getAvailableQty());
+            book.setAvailableQty(currentAvailable + quantity);
+        }
+
+        bookRepository.save(book);
         return copies;
     }
     @Transactional
