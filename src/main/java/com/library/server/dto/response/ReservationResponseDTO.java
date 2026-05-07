@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class ReservationResponseDTO {
-    @JsonProperty("reservation_id")
     private Integer id;
 
     @JsonProperty("book_id")

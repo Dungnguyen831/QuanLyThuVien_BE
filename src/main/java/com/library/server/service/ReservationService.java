@@ -104,11 +104,6 @@ public class ReservationService {
         if (availableCopies.isEmpty()) {
             availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "available");
         }
-        if (!availableCopies.isEmpty()) {
-            assignedCopy = availableCopies.get(0);
-            assignedCopy.setAvailabilityStatus("RESERVED");
-            bookCopyRepository.save(assignedCopy);
-        }
 
         Reservation reservation = Reservation.builder()
                 .user(user)
@@ -183,7 +178,12 @@ public class ReservationService {
         Reservation reservation = reservationRepository.findByIdAndUserId(id, authenticatedUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Đặt chỗ không tồn tại"));
 
+        BookCopy bookStatus = reservation.getBookCopy();
+        bookStatus.setAvailabilityStatus("AVAILABLE");
         reservationRepository.delete(reservation);
+
+
+
     }
 
 
@@ -288,26 +288,32 @@ public class ReservationService {
             }
 
             Book book = reservation.getBook();
-            BookCopy copyToBorrow = reservation.getBookCopy();
 
-            if (copyToBorrow == null) {
-                List<BookCopy> reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "RESERVED");
-                if (reservedCopies.isEmpty()) {
-                    reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "reserved");
-                }
-
-                if (!reservedCopies.isEmpty()) {
-                    copyToBorrow = reservedCopies.get(0);
-                } else {
-                    List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "AVAILABLE");
-                    if (availableCopies.isEmpty()) {
-                        availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "available");
-                    }
-                    if (!availableCopies.isEmpty()) {
-                        copyToBorrow = availableCopies.get(0);
-                    }
-                }
+            List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(bookId, "AVAILABLE");
+            if (availableCopies.isEmpty()) {
+                throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
             }
+            BookCopy copyToBorrow = availableCopies.get(0); // Lấy cuốn đầu tiên tìm thấy
+            copyToBorrow.setAvailabilityStatus("UNAVAILABLE");
+
+//            if (copyToBorrow == null) {
+//                List<BookCopy> reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "RESERVED");
+//                if (reservedCopies.isEmpty()) {
+//                    reservedCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "reserved");
+//                }
+//
+//                if (!reservedCopies.isEmpty()) {
+//                    copyToBorrow = reservedCopies.get(0);
+//                } else {
+//                    List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "AVAILABLE");
+//                    if (availableCopies.isEmpty()) {
+//                        availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(book.getId(), "available");
+//                    }
+//                    if (!availableCopies.isEmpty()) {
+//                        copyToBorrow = availableCopies.get(0);
+//                    }
+//                }
+//            }
 
             if (copyToBorrow == null) {
                 throw new RuntimeException("Sách này hiện đã hết trong kho, không thể duyệt!");
@@ -352,28 +358,13 @@ public class ReservationService {
         return mapReservationsWithBooks(reservations);
     }
 
-    /**
-     * ✅ NEW: Get all reservations with full book details (Admin only)
-     * Used by: GET /api/v1/reservations
-     */
-//    public List<java.util.Map<String, Object>> getAllReservationsWithBooksDetail() {
-//        List<ReservationResponseDTO> reservations = getAllReservations();
-//        return mapReservationsWithBooks(reservations);
-//    }
 
-    /**
-     * ✅ NEW: Get single reservation with full book details (Admin only)
-     * Used by: GET /api/v1/reservations/{id}
-     */
     public java.util.Map<String, Object> getReservationWithBooksDetail(Integer reservationId) {
         ReservationResponseDTO reservation = getReservationByIdForAdmin(reservationId);
         Book book = bookRepository.findById(reservation.getBookId()).orElse(null);
         return buildReservationMap(reservation, book, true);
     }
 
-    /**
-     * ✅ HELPER: Map reservations to HashMap with book details
-     */
     private List<java.util.Map<String, Object>> mapReservationsWithBooks(List<ReservationResponseDTO> reservations) {
         return reservations.stream()
                 .map(reservation -> {
