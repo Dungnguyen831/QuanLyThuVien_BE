@@ -87,12 +87,12 @@ public class LoanService {
 
         // 3. Tìm 1 bản sao của sách (BookCopy) đang rảnh
         // Vì hệ thống lưu mượn theo từng Cuốn (Copy), ta lấy đại 1 bản rảnh của đầu sách đó
-        List<BookCopy> availableCopies = bookCopyRepository.findByBookId(bookId);
+        List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(bookId, "AVAILABLE");
         if (availableCopies.isEmpty()) {
             throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
         }
         BookCopy copyToBorrow = availableCopies.get(0); // Lấy cuốn đầu tiên tìm thấy
-        copyToBorrow.setAvailabilityStatus("BORROWED"); // Hoặc "BORROWED"
+        copyToBorrow.setAvailabilityStatus("UNAVAILABLE");
         bookCopyRepository.save(copyToBorrow);
 
         Book book = copyToBorrow.getBook();
@@ -346,19 +346,6 @@ public class LoanService {
         }
 
         BookCopy copyToBorrow = reservation.getBookCopy();
-        if (copyToBorrow == null) {
-            List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(
-                    reservation.getBook().getId(),
-                    "AVAILABLE"
-            );
-
-            if (availableCopies.isEmpty()) {
-                throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho để giao!");
-            }
-            copyToBorrow = availableCopies.get(0);
-        }
-
-        copyToBorrow.setAvailabilityStatus("BORROWED");
         bookCopyRepository.save(copyToBorrow);
 
         // 4. Tạo hóa đơn mượn (Bảng loans)
