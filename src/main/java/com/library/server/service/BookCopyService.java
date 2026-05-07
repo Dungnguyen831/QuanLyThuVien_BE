@@ -10,6 +10,7 @@ import com.library.server.repository.ShelfRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,33 +33,50 @@ public class BookCopyService {
         return bookCopyRepository.save(copy);
     }
 
+    @Transactional // Quan trọng: Đảm bảo tính nhất quán dữ liệu
     public List<BookCopy> createMultipleCopiesManual(BookCopy template, int quantity) {
-        List<BookCopy> copies = new ArrayList<>();
-
-        // Đảm bảo book tồn tại trong DB
         Book book = bookRepository.findById(template.getBook().getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sách với ID: " + template.getBook().getId()));
 
+        List<BookCopy> copies = new ArrayList<>();
         for (int i = 0; i < quantity; i++) {
             BookCopy newCopy = new BookCopy();
             newCopy.setBook(book);
             newCopy.setConditionStatus(template.getConditionStatus());
             newCopy.setAvailabilityStatus(template.getAvailabilityStatus());
-
-            // Tạo barcode duy nhất bằng timestamp + số thứ tự i
-            newCopy.setBarcode("BC" + System.currentTimeMillis() + i);
-
+            newCopy.setBarcode("BC" +  System.currentTimeMillis() + i);
             copies.add(bookCopyRepository.save(newCopy));
         }
-        return copies;
 
+        // Tự động cộng dồn số lượng vào Book
+        int newTotal = (book.getTotalQty() == null ? 0 : book.getTotalQty()) + quantity;
+        book.setTotalQty(newTotal);
+        int newavailable = (book.getAvailableQty() == null ? 0 : book.getAvailableQty()) + quantity;
+        book.setAvailableQty(newavailable);
+
+        bookRepository.save(book); // Lưu thay đổi vào bảng books
+        return copies;
     }
-    // Xóa bản sao
+    @Transactional
     public void deleteCopy(Integer id) {
-        if (!bookCopyRepository.existsById(id)) {
-            throw new RuntimeException("Bản sao không tồn tại với ID: " + id);
+        BookCopy copy = bookCopyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bản sao không tồn tại với ID: " + id));
+
+        Book book = copy.getBook();
+
+        // Giảm số lượng tổng
+        if (book.getTotalQty() != null && book.getTotalQty() > 0) {
+            book.setTotalQty(book.getTotalQty() - 1);
         }
-        bookCopyRepository.deleteById(id);
+
+        // Giảm số lượng sẵn có nếu bản sao đang ở trạng thái AVAILABLE
+        if ("AVAILABLE".equalsIgnoreCase(copy.getAvailabilityStatus())
+                && book.getAvailableQty() != null && book.getAvailableQty() > 0) {
+            book.setAvailableQty(book.getAvailableQty() - 1);
+        }
+
+        bookCopyRepository.delete(copy);
+        bookRepository.save(book);
     }
     // Cập nhật thông tin bản sao
     public BookCopy updateCopy(Integer id, BookCopyRequestDTO dto) {

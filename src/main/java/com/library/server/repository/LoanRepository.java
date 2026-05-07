@@ -4,6 +4,7 @@ import com.library.server.dto.response.LoanResponseDTO;
 import com.library.server.entity.Loan;
 import com.library.server.entity.LoanDetail;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,5 +14,4 @@ import java.util.List;
 public interface LoanRepository extends JpaRepository<Loan, Integer> {
     // Tạm thời chỉ cần lấy tất cả (findAll) là đủ xài
     List<Loan> findByUserId(Integer userId);
-
 }

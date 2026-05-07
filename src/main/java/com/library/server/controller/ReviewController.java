@@ -26,7 +26,6 @@ public class ReviewController {
 
     // POST /api/v1/reviews - Create a new review
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createReview(
             @RequestBody ReviewRequestDTO requestDTO,
             @AuthenticationPrincipal User authenticatedUser) {
@@ -51,7 +50,6 @@ public class ReviewController {
 
     // PUT /api/v1/reviews/{id} - Update review
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateReview(
             @PathVariable Integer id,
             @RequestBody ReviewRequestDTO requestDTO,
@@ -75,7 +73,6 @@ public class ReviewController {
 
     // DELETE /api/v1/reviews/{id} - Delete review
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> deleteReview(
             @PathVariable Integer id,
             @AuthenticationPrincipal User authenticatedUser) {

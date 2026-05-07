@@ -327,5 +327,80 @@ public class ReservationService {
         reservationRepository.save(reservation);
         logger.info("Admin đã cập nhật trạng thái phiếu {} thành {}", id, newStatus);
     }
+
+    /**
+     * ✅ NEW: Get user's reservations with full book details
+     * Used by: GET /api/v1/reservations/details
+     */
+    public List<java.util.Map<String, Object>> getMyReservationsWithBooksDetail(Integer userId) {
+        List<ReservationResponseDTO> reservations = getReservationsByUserIdList(userId);
+        return mapReservationsWithBooks(reservations);
+    }
+
+    /**
+     * ✅ NEW: Get all reservations with full book details (Admin only)
+     * Used by: GET /api/v1/reservations
+     */
+    public List<java.util.Map<String, Object>> getAllReservationsWithBooksDetail() {
+        List<ReservationResponseDTO> reservations = getAllReservations();
+        return mapReservationsWithBooks(reservations);
+    }
+
+    /**
+     * ✅ NEW: Get single reservation with full book details (Admin only)
+     * Used by: GET /api/v1/reservations/{id}
+     */
+    public java.util.Map<String, Object> getReservationWithBooksDetail(Integer reservationId) {
+        ReservationResponseDTO reservation = getReservationByIdForAdmin(reservationId);
+        Book book = bookRepository.findById(reservation.getBookId()).orElse(null);
+        return buildReservationMap(reservation, book, true);
+    }
+
+    /**
+     * ✅ HELPER: Map reservations to HashMap with book details
+     */
+    private List<java.util.Map<String, Object>> mapReservationsWithBooks(List<ReservationResponseDTO> reservations) {
+        return reservations.stream()
+                .map(reservation -> {
+                    try {
+                        Book book = bookRepository.findById(reservation.getBookId()).orElse(null);
+                        return buildReservationMap(reservation, book, false);
+                    } catch (Exception e) {
+                        logger.warn("Error fetching book details for reservation: {}", reservation.getId(), e);
+                        return buildReservationMap(reservation, null, false);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ HELPER: Build reservation map with optional book details
+     */
+    private java.util.Map<String, Object> buildReservationMap(ReservationResponseDTO reservation, Book book, boolean includeUserId) {
+        return new java.util.HashMap<String, Object>() {{
+            put("id", reservation.getId());
+            if (includeUserId) {
+                put("userId", reservation.getUserId());
+            }
+            put("reservationDate", reservation.getReservationDate());
+            put("status", reservation.getStatus());
+            put("createdAt", reservation.getCreatedAt());
+            put("updatedAt", reservation.getUpdatedAt());
+
+            // Book details (null-safe)
+            if (book != null) {
+                put("bookId", book.getId());
+                put("title", book.getTitle());
+                put("isbn", book.getIsbn());
+                put("publishedYear", book.getPublishedYear());
+                put("totalQty", book.getTotalQty());
+                put("availableQty", book.getAvailableQty());
+                put("imageUrl", book.getImageUrl());
+                put("categoryId", book.getCategory() != null ? book.getCategory().getId() : null);
+                put("authorId", book.getAuthor() != null ? book.getAuthor().getId() : null);
+                put("publisherId", book.getPublisher() != null ? book.getPublisher().getId() : null);
+            }
+        }};
+    }
 }
 

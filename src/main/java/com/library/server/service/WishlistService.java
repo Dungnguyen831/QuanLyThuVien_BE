@@ -80,7 +80,21 @@ public class WishlistService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ REMOVED: getBookWishlist(Integer bookId) - No endpoint for this, FE doesn't use
+
+    // ✅ NEW: Get user's wishlist with full book details
+    public List<Book> getMyWishlistWithBooksDetail(Integer userId) {
+        // Validate user exists
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Get wishlist items
+        List<Wishlist> wishlists = wishlistRepository.findByUserId(userId);
+
+        // Map to Book objects with full details
+        return wishlists.stream()
+                .map(Wishlist::getBook)
+                .collect(Collectors.toList());
+    }
 
     // Remove from wishlist
     public void removeFromWishlist(WishlistRequestDTO requestDTO) {

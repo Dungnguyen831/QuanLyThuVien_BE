@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/admin/dashboard")
 public class DashboardController {
@@ -17,5 +20,10 @@ public class DashboardController {
     @GetMapping("/stats")
     public ResponseEntity<DashboardStatsDTO> getStats() {
         return ResponseEntity.ok(dashboardService.getStats());
+    }
+
+    @GetMapping("/chart")
+    public ResponseEntity<List<Map<String, Object>>> getChartData() {
+        return ResponseEntity.ok(dashboardService.getMonthlyStats());
     }
 }

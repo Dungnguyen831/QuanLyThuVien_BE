@@ -383,4 +383,8 @@ public class LoanService {
         reservation.setStatus("completed");
         reservationRepository.save(reservation);
     }
+    public List<Object[]> getRecentLoansForTable() {
+        // Chúng ta gọi thẳng xuống Repository để lấy dữ liệu đã join 4 bảng
+        return loanDetailRepository.findRecentLoanDetails();
+    }
 }

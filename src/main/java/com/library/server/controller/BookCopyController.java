@@ -43,10 +43,8 @@ public class BookCopyController {
     }
     // Cập nhật bản sao: PUT http://localhost:8080/api/v1/book-copies/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<BookCopy> update(@PathVariable Integer id, @RequestBody BookCopyRequestDTO dto) {
-        // Gọi hàm updateCopy đã sửa trong Service nhận vào DTO
-        BookCopy updatedCopy = bookCopyService.updateCopy(id, dto);
-        return ResponseEntity.ok(updatedCopy);
+    public ResponseEntity<BookCopy> update(@PathVariable Integer id, @RequestBody BookCopyRequestDTO copy) {
+        return ResponseEntity.ok(bookCopyService.updateCopy(id, copy));
     }
     @GetMapping("/book/{bookId}")
     public ResponseEntity<List<BookCopy>> getByBookId(@PathVariable Integer bookId) {
