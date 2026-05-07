@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Wishlist {
+public class    Wishlist {
 
     @EmbeddedId
     private WishlistId id;
