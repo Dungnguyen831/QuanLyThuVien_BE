@@ -7,11 +7,11 @@ import lombok.Data;
 @Builder
 public class LoanResponseDTO {
     private String id;
-    private Integer loanDetailId;// Mã phiếu (VD: MP001)
-    private String userName;        // Tên Nguyễn Văn A
-    private String userAvatarColor; // Màu ngẫu nhiên
-    private String bookName;        // Tên sách
-    private String bookCopyBarcode; // Mã vạch bản sao
+    private Integer loanDetailId;
+    private String userName;
+    private String userAvatarColor;
+    private String bookName;
+    private String barcode;
     private String borrowDate;
     private String dueDate;
     private String returnDate;
