@@ -61,9 +61,11 @@ public class LoanService {
                     .userName(fullName)
                     .userAvatarColor("#0d6efd")
                     .bookName(title)
+                    .barcode(detail.getBookCopy().getBarcode())
                     .borrowDate(detail.getLoan().getBorrowDate().format(formatter))
                     .dueDate(detail.getDueDate().format(formatter))
                     .returnDate(detail.getReturnDate() != null ? detail.getReturnDate().format(formatter) : "-")
+                    .note(detail.getLoan().getNote())
                     .status(realStatus)
                     .build();
         }).collect(Collectors.toList());
@@ -241,6 +243,14 @@ public class LoanService {
 
         if (detail.getReturnDate() != null) {
             throw new RuntimeException("Cuốn sách này đã được trả trước đó!");
+        }
+
+        String borrowedBarcode = detail.getBookCopy().getBarcode(); // Barcode gốc trong DB
+        String inputBarcode = (request != null) ? request.getInputBarcode() : null; // Barcode thủ thư nhập
+
+        if (inputBarcode == null || !borrowedBarcode.equalsIgnoreCase(inputBarcode.trim())) {
+            throw new RuntimeException("LỖI ĐỐI CHIẾU: Mã vạch không khớp! " +
+                    "Mã mong đợi: " + borrowedBarcode + ", Mã nhập vào: " + inputBarcode);
         }
 
         // 2. Cập nhật phiếu mượn

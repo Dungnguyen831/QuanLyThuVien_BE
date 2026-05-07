@@ -56,7 +56,7 @@ public class BookCopyService {
 
             // TẠO BARCODE: Kết hợp tiền tố + ID vừa sinh ra
             // Ví dụ: SHDGD2024-75 (75 là ID của bản sao trong DB)
-            String customBarcode = String.format("%s%s%s-%d", bookPart, categoryPart, yearPart, newCopy.getId());
+            String customBarcode = String.format("%s%s%s%d", bookPart, categoryPart, yearPart, newCopy.getId());
             newCopy.setBarcode(customBarcode);
 
             // LƯU LẦN 2: Cập nhật lại barcode chính thức
