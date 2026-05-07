@@ -8,8 +8,10 @@ import com.library.server.repository.RoleRepository;
 import com.library.server.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +34,7 @@ public class UserService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .msv(user.getMsv()) // BỔ SUNG: Trả về msv cho Frontend
                 .status(user.getStatus())
                 .roleName(user.getRole() != null ? user.getRole().getName() : "NO_ROLE")
                 .build();
@@ -71,15 +74,28 @@ public class UserService {
             }
         }
 
+        // BỔ SUNG: Kiểm tra xem MSV có bị trùng không
+        if (requestDTO.getMsv() != null && !requestDTO.getMsv().trim().isEmpty()) {
+            if (userRepository.findByMsv(requestDTO.getMsv().trim()).isPresent()) {
+                throw new RuntimeException("Mã sinh viên này đã tồn tại trên hệ thống!");
+            }
+        }
+
         Role userRole = roleRepository.findByName(requestDTO.getRoleName())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy quyền: " + requestDTO.getRoleName()));
 
         User newUser = new User();
         newUser.setFullName(requestDTO.getFull_name());
         newUser.setEmail(requestDTO.getEmail());
+
+        // BỔ SUNG: Lưu MSV
+        if (requestDTO.getMsv() != null && !requestDTO.getMsv().trim().isEmpty()) {
+            newUser.setMsv(requestDTO.getMsv().trim());
+        }
+
         // Nếu admin không truyền password, có thể set mặc định (vd: 123456)
-        String pass = (requestDTO.getPassword() != null && !requestDTO.getPassword().isEmpty()) 
-                      ? requestDTO.getPassword() : "123456";
+        String pass = (requestDTO.getPassword() != null && !requestDTO.getPassword().isEmpty())
+                ? requestDTO.getPassword() : "123456";
         newUser.setPassword(passwordEncoder.encode(pass));
         newUser.setPhone(requestDTO.getPhone());
         newUser.setRole(userRole);
@@ -106,6 +122,17 @@ public class UserService {
             if (userRepository.findByPhone(requestDTO.getPhone()).isPresent()) {
                 throw new RuntimeException("Số điện thoại đã được sử dụng bởi tài khoản khác!");
             }
+        }
+
+        // BỔ SUNG: Kiểm tra MSV trùng với người KHÁC
+        if (requestDTO.getMsv() != null && !requestDTO.getMsv().trim().isEmpty()) {
+            Optional<User> userWithMsv = userRepository.findByMsv(requestDTO.getMsv().trim());
+            if (userWithMsv.isPresent() && !userWithMsv.get().getId().equals(id)) {
+                throw new RuntimeException("Mã sinh viên này đã được sử dụng bởi tài khoản khác!");
+            }
+            existingUser.setMsv(requestDTO.getMsv().trim());
+        } else {
+            existingUser.setMsv(null); // Nếu truyền rỗng thì set null
         }
 
         existingUser.setFullName(requestDTO.getFull_name());
@@ -166,4 +193,21 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // THÊM MỚI (Số 7): Cập nhật Mã sinh viên nhanh (Dành cho chức năng quét thẻ của Thủ thư)
+    @Transactional
+    public String updateMsv(Integer userId, String newMsv) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy độc giả này!"));
+
+        // Kiểm tra xem MSV mới có bị trùng với người khác không
+        if (newMsv != null && !newMsv.trim().isEmpty()) {
+            Optional<User> existingUser = userRepository.findByMsv(newMsv.trim());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new RuntimeException("Mã sinh viên này đã được cấp cho tài khoản khác!");
+            }
+        }
+        user.setMsv(newMsv != null ? newMsv.trim() : null);
+        userRepository.save(user);
+        return "Cập nhật Mã sinh viên thành công!";
+    }
 }
