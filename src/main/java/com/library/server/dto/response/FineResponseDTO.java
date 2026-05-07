@@ -15,4 +15,5 @@ public class FineResponseDTO {
     private String reason;
     private Boolean isPaid;
     private LocalDateTime createdAt;
+
 }
