@@ -57,4 +57,8 @@ public class BookController {
         bookService.deleteBook(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/top-popular")
+    public ResponseEntity<List<Object[]>> getTopPopular() {
+        return ResponseEntity.ok(bookService.getTopBooks());
+    }
 }

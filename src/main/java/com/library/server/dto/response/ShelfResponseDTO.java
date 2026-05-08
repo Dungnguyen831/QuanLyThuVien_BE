@@ -10,4 +10,6 @@ public class ShelfResponseDTO  {
     private Integer floor;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String categoryName;
+    private Integer categoryID;
 }

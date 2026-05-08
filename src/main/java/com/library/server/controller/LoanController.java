@@ -102,4 +102,9 @@ public class LoanController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+    @GetMapping("/recent")
+    public ResponseEntity<List<Object[]>> getRecentLoanDetails() {
+        List<Object[]> recentLoans = loanService.getRecentLoansForTable();
+        return ResponseEntity.ok(recentLoans);
+    }
 }

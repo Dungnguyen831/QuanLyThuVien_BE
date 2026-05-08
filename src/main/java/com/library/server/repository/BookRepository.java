@@ -14,4 +14,14 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
     List<Book> findByTitleContainingIgnoreCase(String title);
     // TÌm kiếm theo barcode
     List<Book> findByIsbnContainingIgnoreCase(String isbn);
+
+    @Query(value = "SELECT b.title, a.name as authorName, COUNT(ld.id) as borrowCount " +
+            "FROM loan_details ld " +
+            "JOIN book_copies bc ON ld.book_copy_id = bc.id " +
+            "JOIN books b ON bc.book_id = b.id " +
+            "JOIN authors a ON b.author_id = a.id " +
+            "GROUP BY b.id, b.title, a.name " +
+            "ORDER BY borrowCount DESC " +
+            "LIMIT 4", nativeQuery = true)
+    List<Object[]> getTopPopularBooks();
 }
