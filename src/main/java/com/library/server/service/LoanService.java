@@ -159,6 +159,8 @@ public class LoanService {
                 .bookName(book.getTitle())
                 .borrowDate(loan.getBorrowDate().toString().substring(0, 10)) // Cắt lấy YYYY-MM-DD
                 .dueDate(detail.getDueDate().toString().substring(0, 10))
+                .barcode(bookCopy.getBarcode())
+                .note(loan.getNote())
                 .returnDate(detail.getReturnDate() != null ? detail.getReturnDate().toString().substring(0, 10) : "")
                 .status(detail.getStatus())
                 .build();
