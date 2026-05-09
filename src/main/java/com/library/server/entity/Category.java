@@ -12,6 +12,7 @@ public class Category extends BaseEntity {
     private String name;
     private String description;
 
+
     @OneToMany(mappedBy = "category", fetch = FetchType.EAGER) // Dùng EAGER để tránh lỗi 500 Lazy
     @JsonIgnore
     private List<Book> books;

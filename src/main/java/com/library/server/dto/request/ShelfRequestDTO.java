@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 public class ShelfRequestDTO{
     private String name;
     private Integer floor;
+    private Integer categoryID;
 
 
 }

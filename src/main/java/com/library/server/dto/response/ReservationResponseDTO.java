@@ -1,11 +1,11 @@
 package com.library.server.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,16 +14,22 @@ import java.time.LocalDateTime;
 @Builder
 public class ReservationResponseDTO {
     private Integer id;
-    private Integer userId;
+
+    @JsonProperty("book_id")
     private Integer bookId;
+
+    @JsonProperty("book_copy_barcode")
+    private String bookCopyBarcode;
+
+    private Integer userId;
 
     private String userName;     // Tên sinh viên
     private String userEmail;    // Email sinh viên
     private String bookName;     // Tên sách
 
-    private LocalDate reservationDate;
+    @JsonProperty("reservation_date")
+    private LocalDateTime reservationDate;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-

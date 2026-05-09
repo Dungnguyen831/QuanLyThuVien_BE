@@ -64,6 +64,8 @@ public class SecurityConfig {
                                 "/api/v1/books/**",
                                 "/api/v1/upload",
                                 "/api/v1/upload/**",
+                                "/api/v1/admin/dashboard/stats",
+                                "/api/v1/admin/dashboard/chart",
                                 "/error"
                         ).permitAll()
                         .anyRequest().authenticated()

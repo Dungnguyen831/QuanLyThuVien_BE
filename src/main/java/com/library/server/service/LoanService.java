@@ -89,12 +89,12 @@ public class LoanService {
 
         // 3. Tìm 1 bản sao của sách (BookCopy) đang rảnh
         // Vì hệ thống lưu mượn theo từng Cuốn (Copy), ta lấy đại 1 bản rảnh của đầu sách đó
-        List<BookCopy> availableCopies = bookCopyRepository.findByBookId(bookId);
+        List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(bookId, "AVAILABLE");
         if (availableCopies.isEmpty()) {
             throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
         }
         BookCopy copyToBorrow = availableCopies.get(0); // Lấy cuốn đầu tiên tìm thấy
-        copyToBorrow.setAvailabilityStatus("BORROWED"); // Hoặc "BORROWED"
+        copyToBorrow.setAvailabilityStatus("UNAVAILABLE");
         bookCopyRepository.save(copyToBorrow);
 
         Book book = copyToBorrow.getBook();
@@ -363,13 +363,7 @@ public class LoanService {
             throw new RuntimeException("Độc giả đang có khoản phạt chưa thanh toán. Yêu cầu đóng phạt trước khi nhận sách!");
         }
 
-        // 3. Tìm 1 bản sao của sách đang rảnh và trừ số lượng (Tái sử dụng logic cũ)
-        List<BookCopy> availableCopies = bookCopyRepository.findByBookId(reservation.getBook().getId());
-        if (availableCopies.isEmpty()) {
-            throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho để giao!");
-        }
-        BookCopy copyToBorrow = availableCopies.get(0);
-        copyToBorrow.setAvailabilityStatus("BORROWED");
+        BookCopy copyToBorrow = reservation.getBookCopy();
         bookCopyRepository.save(copyToBorrow);
 
         Book book = copyToBorrow.getBook();
@@ -394,5 +388,9 @@ public class LoanService {
         // 6. CHỐT HẠ: Đổi trạng thái phiếu đặt thành "completed"
         reservation.setStatus("completed");
         reservationRepository.save(reservation);
+    }
+    public List<Object[]> getRecentLoansForTable() {
+        // Chúng ta gọi thẳng xuống Repository để lấy dữ liệu đã join 4 bảng
+        return loanDetailRepository.findRecentLoanDetails();
     }
 }

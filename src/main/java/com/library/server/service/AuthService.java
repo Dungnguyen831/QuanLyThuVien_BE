@@ -111,6 +111,7 @@ public class AuthService {
                 .phone(user.getPhone())
                 .status(user.getStatus())
                 .role(user.getRole() != null ? user.getRole().getName() : "NO_ROLE")
+                .msv(user.getMsv())
                 .build();
 
         return LoginResponseDTO.builder()

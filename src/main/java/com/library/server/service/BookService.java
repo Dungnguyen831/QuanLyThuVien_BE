@@ -135,4 +135,6 @@ public class BookService {
         }
         bookRepository.deleteById(id);
     }
+    public List<Object[]> getTopBooks() {
+        return bookRepository.getTopPopularBooks();}
 }

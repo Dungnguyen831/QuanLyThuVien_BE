@@ -3,7 +3,6 @@ package com.library.server.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,10 +21,13 @@ public class Reservation extends BaseEntity {
     @JoinColumn(name = "book_id")
     private Book book;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_copy_id")
+    private BookCopy bookCopy;
+
     @Column(name = "reservation_date")
-    private LocalDate reservationDate;
+    private LocalDateTime reservationDate;
 
     @Column(name = "status", length = 50)
     private String status;
 }
-

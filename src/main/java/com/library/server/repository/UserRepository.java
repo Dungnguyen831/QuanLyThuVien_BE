@@ -6,19 +6,24 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    // Spring Data JPA sẽ tự hiểu và tạo Query tìm kiếm User theo cột email
     Optional<User> findByEmail(String email);
-    
     Optional<User> findByPhone(String phone);
-    
-    // Lấy danh sách theo Tên Role và tìm kiếm theo FullName (chứa từ khóa, không phân biệt hoa thường)
+
+    // 1. THÊM MỚI: Dùng để kiểm tra xem MSV có bị trùng với người khác không
+    Optional<User> findByMsv(String msv);
+
+    // 2. NÂNG CẤP: Cho phép tìm kiếm theo Tên, SĐT hoặc Mã sinh viên
     @Query("SELECT u FROM User u WHERE u.role.name = :roleName " +
-           "AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(u.msv) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<User> findByRoleNameAndKeyword(@Param("roleName") String roleName, @Param("keyword") String keyword);
+    long countByCreatedAtAfter(LocalDateTime dateTime);
 }
