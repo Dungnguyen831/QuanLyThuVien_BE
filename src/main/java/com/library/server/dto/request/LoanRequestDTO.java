@@ -18,6 +18,7 @@ public class LoanRequestDTO {
 
     @NotBlank
     private String dueDate;
+    private String barcode;
 
     private String note;
 }

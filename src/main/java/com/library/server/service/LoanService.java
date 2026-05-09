@@ -87,13 +87,24 @@ public class LoanService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy độc giả với mã: " + request.getUserId()));
 
-        // 3. Tìm 1 bản sao của sách (BookCopy) đang rảnh
-        // Vì hệ thống lưu mượn theo từng Cuốn (Copy), ta lấy đại 1 bản rảnh của đầu sách đó
-        List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(bookId, "AVAILABLE");
-        if (availableCopies.isEmpty()) {
-            throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
+        BookCopy copyToBorrow;
+
+        if (request.getBarcode() != null && !request.getBarcode().trim().isEmpty()) {
+            copyToBorrow = bookCopyRepository.findByBarcode(request.getBarcode())
+                    .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy sách với mã vạch: " + request.getBarcode()));
+
+            if (!"AVAILABLE".equals(copyToBorrow.getAvailabilityStatus())) {
+                throw new RuntimeException("Cuốn sách này hiện không có sẵn!");
+            }
+        } else {
+            List<BookCopy> availableCopies = bookCopyRepository.findByBookIdAndAvailabilityStatus(bookId, "AVAILABLE" );
+            if  (availableCopies.isEmpty()) {
+                throw new RuntimeException("Đầu sách này hiện không còn cuốn nào trong kho!");
+            }
+
+            copyToBorrow = availableCopies.get(0);
         }
-        BookCopy copyToBorrow = availableCopies.get(0); // Lấy cuốn đầu tiên tìm thấy
+
         copyToBorrow.setAvailabilityStatus("UNAVAILABLE");
         bookCopyRepository.save(copyToBorrow);
 
@@ -231,6 +242,11 @@ public class LoanService {
         LocalDateTime newDueDate = LocalDate.parse(request.getNewDueDate()).atTime(23, 59, 59);
         if (newDueDate.isBefore(detail.getDueDate())) {
             throw new RuntimeException("Ngày mới phải sau ngày cũ!");
+        }
+
+        LocalDateTime maxDueDate = detail.getDueDate().plusDays(7);
+        if (newDueDate.isAfter(maxDueDate)) {
+            throw new RuntimeException("Chỉ được phép gia hạn tối đa 7 ngày");
         }
 
         detail.setDueDate(newDueDate);
